@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft, Lock, Pencil } from "lucide-react";
+import { ArrowLeft, ImagePlus, Lock, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/input";
 import { getMyCouple } from "@/features/couple/queries";
 import { DeleteMemory, ShareToggle } from "@/features/memories/memory-controls";
 import { getMemory } from "@/features/memories/queries";
+import { MemoryPhotoGrid } from "@/features/photos/photo-grid";
+import { getMemoryPhotos } from "@/features/photos/queries";
 import { formatDate } from "@/lib/dates";
 import { getUserId } from "@/lib/supabase/server";
 
@@ -18,6 +20,8 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
   const [memory, couple] = await Promise.all([getMemory(userId, id), getMyCouple(userId)]);
   // 권한이 없는 기록은 "없는 기록"과 구별하지 않는다.
   if (!memory) notFound();
+  const photos = await getMemoryPhotos(userId, memory.id);
+  const withLocation = photos.filter((p) => p.lat != null).length;
   const archived = memory.couple_id !== couple?.id;
   const partner = couple?.members.find((m) => !m.isMe);
 
@@ -43,6 +47,11 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
           {archived && <span className="rounded-full bg-beige px-2 py-0.5 text-xs">보관 중 · 읽기 전용</span>}
         </div>
         <h1 className="mt-3 font-display text-3xl leading-tight">{memory.title}</h1>
+        {photos.length > 0 && (
+          <div className="mt-6">
+            <MemoryPhotoGrid photos={photos} memoryId={memory.id} editable={memory.isMine && !archived} />
+          </div>
+        )}
         {memory.body && <div className="mt-6 whitespace-pre-wrap text-[15px] leading-[1.9]">{memory.body}</div>}
         {memory.tags.length > 0 && (
           <ul className="mt-8 flex flex-wrap gap-1.5">
@@ -62,7 +71,16 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
           <Link href={`/memories/${memory.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Pencil /> 수정
           </Link>
-          <ShareToggle id={memory.id} status={memory.share_status} partnerName={partner?.displayName ?? null} />
+          <Link href={`/photos/upload?memory=${memory.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <ImagePlus /> 사진 추가
+          </Link>
+          <ShareToggle
+            id={memory.id}
+            status={memory.share_status}
+            partnerName={partner?.displayName ?? null}
+            photoCount={photos.length}
+            locationCount={withLocation}
+          />
           <DeleteMemory id={memory.id} />
         </div>
       )}

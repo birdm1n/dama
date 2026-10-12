@@ -42,6 +42,7 @@ Pinterest 감성의 따뜻한 에디토리얼. 폴라로이드·스크랩북 카
 - **로그인**: 이메일+비밀번호, 이메일 인증 필수. 소셜 로그인은 나중에.
 - 한 사람은 동시에 하나의 활성 커플에만 속한다. 커플은 최대 2명.
 - **기록 공유**: 새 기록 기본값은 `draft`(나만 보기). `shared` 전환은 작성자만. 상대 기록은 읽기만. 태그는 `memories.tags text[]`(가시성이 기록과 같도록).
+- **사진**: EXIF는 브라우저에서 읽고 사용자가 확인한 값만 저장. 저장 파일은 WebP 재인코딩(EXIF 없음). 상대는 공유된 기록에 붙은 사진만 본다. 파일 삭제는 대기열 + `/api/cron/storage-cleanup`(service_role은 이 작업에서만).
 - 샘플 데이터는 `supabase/seed.sql`(로컬 전용, 모든 이름·제목에 `[샘플]`).
 
 ## 코드 지도
@@ -59,5 +60,6 @@ Pinterest 감성의 따뜻한 에디토리얼. 폴라로이드·스크랩북 카
 ## 테스트
 - `npm run test:unit` — 단위
 - `npm run test:db` — RLS·RPC. Docker 없이 임시 Postgres + `tests/db/supabase-shim.sql`로 실행. `DATABASE_URL`을 주면 그 DB(예: supabase start의 54322)에 대해 실행.
-- `npm run test:e2e` — Playwright. `supabase start` + `.env.local` 필요, 메일은 Mailpit(54324)에서 읽음.
+- `npm run test:e2e` — Playwright. `supabase start` + `.env.local` 필요, 메일은 Mailpit(54324)에서 읽음. 정리 작업 테스트는 `SUPABASE_SERVICE_ROLE_KEY`·`CRON_SECRET`이 있을 때만 실행.
+- 사진 테스트 픽스처(`tests/fixtures/*.jpg`)는 EXIF 값(시각·오프셋·GPS·정확도)을 알고 있는 합성 이미지다.
 - `npm run lint`, `npm run typecheck`, `npm run build`

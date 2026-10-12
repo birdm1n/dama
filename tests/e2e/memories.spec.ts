@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { readFileSync } from "node:fs";
 import { pairedCouple, writeMemory } from "./helpers";
 
 test("기록: 초안은 작성자만, 공유는 명시적으로, 상대는 읽기만, 해제 후엔 내 기록만 보관·내보내기", async ({ browser }) => {
@@ -68,7 +69,7 @@ test("기록: 초안은 작성자만, 공유는 명시적으로, 상대는 읽�
   const download = a.waitForEvent("download");
   await a.getByRole("link", { name: /내 기록 내보내기/ }).click();
   const file = await (await download).path();
-  const json = JSON.parse(require("node:fs").readFileSync(file, "utf8"));
+  const json = JSON.parse(readFileSync(file!, "utf8"));
   expect(json.memories.map((m: { title: string }) => m.title).sort()).toEqual(["깜짝 선물 계획", "한강 산책"]);
 
   // 보관 기록은 읽기 전용: 수정 버튼 없음

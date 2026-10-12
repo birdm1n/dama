@@ -49,24 +49,23 @@ memories
 - `my_memory_tags()` — 필터 칩용 태그 목록(역시 RLS 적용).
 - 삭제는 하드 삭제(확인 단계 있음).
 
-## 사진 📝
+## 사진 ✅
 
 ```
 photos
-  id, couple_id, uploader_id
-  storage_path               -- couple-photos/{couple_id}/{uploader_id}/{uuid}.{ext}
-  taken_at timestamptz null, taken_at_source 'exif' | 'manual'
-  lat, lng numeric null, location_source, accuracy_m
-  width, height, bytes, mime
-  review_status 'pending' | 'confirmed'   -- EXIF 추출값을 사용자가 확인하기 전엔 pending
-  memory_id null references memories
-  created_at, deleted_at
+  id, couple_id, uploader_id, memory_id null (on delete set null)
+  storage_path, thumb_path     -- {couple_id}/{uploader_id}/{id}.webp / {id}_thumb.webp (DB가 형식 검증)
+  width, height, bytes
+  taken_at, taken_at_source 'exif' | 'manual'
+  lat, lng numeric(9,6), location_source 'exif' | 'device' | 'manual', accuracy_m (없으면 null = 알 수 없음)
+  created_at
 ```
 
-- 사진은 업로더만 보인다. **공유된 기록(`memories.share_status='shared'`)에 첨부된 사진만** 상대에게 보인다.
-- Storage 버킷 `couple-photos`는 비공개. `storage.objects` 정책은 경로 첫 두 부분(couple_id, uploader_id)과 위 규칙으로 검사하고, 조회는 서명된 URL로만 한다.
-- "비슷한 시간·장소 사진 묶음"은 저장하지 않고 클라이언트에서 계산해 **후보**로만 제시한다.
-- 백그라운드 사진 감지는 브라우저에서 불가 → 사용자가 직접 고르는 업로드만 지원(정직한 구현).
+- 흐름: 브라우저가 EXIF(시각·오프셋·GPS·정확도)를 읽음 → **사용자가 확인·수정·위치 빼기** → 브라우저가 WebP로 다시 인코딩(EXIF 제거, 최대 2048px + 480px 썸네일) → Storage 업로드 → `savePhotos` 서버 액션이 행 생성. 원본 파일은 서버로 보내지 않는다.
+- EXIF 시각에 시간대(OffsetTimeOriginal)가 없으면 기기 시간대로 추정하고 화면에 "추정"이라고 표시한다.
+- 가시성(RLS): 올린 사람만 / **공유된 내 기록에 붙은 사진만** 상대도 본다. 기록을 '나만 보기'로 되돌리면 즉시 사라진다. 사진은 내가 쓴 기록에만 붙일 수 있다. 해제 후엔 보관 기간 동안 내 사진만 읽기 전용.
+- 기록 후보 묶기(`src/features/photos/grouping.ts`): 시간 간격 3시간·거리 2km 이내를 묶어 **제안**만 한다. 저장하지 않고, 함께 있었다고 단정하지 않는다. 새 기록은 항상 '나만 보기'로 만든다.
+- 파일 삭제: SQL로는 Storage 파일을 지울 수 없어서 `photos` 행 삭제 시(사용자 삭제, 커플 영구 삭제 cascade) 경로를 `private.storage_deletion_queue`에 넣는다. `/api/cron/storage-cleanup`(service_role, `CRON_SECRET`)이 Storage API로 지운다. 행이 지워진 순간부터 파일은 정책상 읽을 수 없다.
 
 ## Memory Map 📝
 
@@ -98,9 +97,9 @@ RLS:
 - 좋아요·북마크: 본인 행만 쓰기, 북마크는 본인만 조회.
 - 신고: 본인 신고만 조회. 처리는 service_role(관리자)만.
 
-## Storage 📝
+## Storage
 
 | 버킷 | 공개 | 쓰기 | 읽기 |
 |---|---|---|---|
-| `couple-photos` | ✗ | 본인 경로(`{내 활성 couple_id}/{auth.uid()}/…`)에만 | 위 사진 규칙 + 서명된 URL |
+| `couple-photos` ✅ | ✗ (WebP만, 10MB) | 본인 경로(`{내 활성 couple_id}/{auth.uid()}/…`)에만 | 볼 수 있는 `photos` 행이 가리키는 파일만 + 서명된 URL(1시간). 업로드 직후 15분간 행이 없을 때는 본인만 |
 | `public-posts` | ○ | 서버(EXIF 제거 처리 후)만 | 누구나 |

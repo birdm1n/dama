@@ -18,6 +18,8 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
     ...devices["Pixel 7"], // 모바일 우선
+    locale: "ko-KR",
+    timezoneId: "Asia/Seoul",
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH }
       : undefined,

@@ -70,6 +70,23 @@ export class Db {
     }
   }
 
+  /** 서버 작업용 역할(service_role 등)로 실행 */
+  async asRole<T = Record<string, unknown>>(role: "service_role", sql: string, params: unknown[] = []): Promise<T[]> {
+    await this.client.query("savepoint as_role");
+    try {
+      await this.client.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ role })]);
+      await this.client.query(`set local role ${role}`);
+      const res = await this.client.query(sql, params);
+      await this.client.query("reset role");
+      await this.client.query("release savepoint as_role");
+      return res.rows as T[];
+    } catch (err) {
+      await this.client.query("rollback to savepoint as_role");
+      await this.client.query("reset role");
+      throw err;
+    }
+  }
+
   // ---- 자주 쓰는 RPC 래퍼 ----
   async createCouple(user: TestUser, name: string | null = null) {
     const [row] = await this.as<{ id: string }>(user, "select public.create_couple($1) as id", [name]);
@@ -147,4 +164,45 @@ export async function writeMemory(db: Db, user: TestUser, coupleId: string, m: M
 export async function titlesSeenBy(db: Db, user: TestUser) {
   const rows = await db.as<{ title: string }>(user, "select title from memories order by title");
   return rows.map((r) => r.title);
+}
+
+export type PhotoInput = {
+  memoryId?: string | null;
+  lat?: number;
+  lng?: number;
+  takenAt?: string;
+  /** 경로를 직접 지정해 규칙 위반을 시험할 때 */
+  path?: string;
+};
+
+export function photoPaths(coupleId: string, userId: string, id = randomUUID()) {
+  return { id, path: `${coupleId}/${userId}/${id}.webp`, thumb: `${coupleId}/${userId}/${id}_thumb.webp` };
+}
+
+/** user가 사진 행을 만든다 (실제 앱과 같은 INSERT 경로) */
+export async function insertPhoto(db: Db, user: TestUser, coupleId: string, p: PhotoInput = {}) {
+  const { path, thumb } = photoPaths(coupleId, user.id);
+  const [row] = await db.as<{ id: string; storage_path: string; thumb_path: string }>(
+    user,
+    `insert into photos (couple_id, uploader_id, memory_id, storage_path, thumb_path, width, height, bytes,
+                         taken_at, taken_at_source, lat, lng, location_source)
+     values ($1, $2, $3, $4, $5, 1600, 1200, 123456, $6, $7, $8, $9, $10)
+     returning id, storage_path, thumb_path`,
+    [
+      coupleId, user.id, p.memoryId ?? null, p.path ?? path, thumb,
+      p.takenAt ?? null, p.takenAt ? "exif" : null,
+      p.lat ?? null, p.lng ?? null, p.lat != null ? "exif" : null,
+    ],
+  );
+  return row;
+}
+
+/** Storage API가 하는 것과 같이 사용자 권한으로 storage.objects 에 행을 만든다 */
+export async function uploadObject(db: Db, user: TestUser, name: string) {
+  await db.as(user, "insert into storage.objects (bucket_id, name, owner) values ('couple-photos', $1, $2)", [name, user.id]);
+}
+
+export async function visibleObjects(db: Db, user: TestUser) {
+  const rows = await db.as<{ name: string }>(user, "select name from storage.objects where bucket_id = 'couple-photos' order by name");
+  return rows.map((r) => r.name);
 }

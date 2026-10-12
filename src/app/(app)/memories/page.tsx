@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Plus } from "lucide-react";
+import { Image as ImageIcon, Plus } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { getMyCouple } from "@/features/couple/queries";
 import { FilterBar, memoriesHref } from "@/features/memories/filter-bar";
 import { MemoryCard } from "@/features/memories/memory-card";
 import { getMemoryTags, searchMemories } from "@/features/memories/queries";
+import { getCoverThumbs } from "@/features/photos/queries";
 import { parseFilter } from "@/features/memories/schema";
 import type { Memory } from "@/features/memories/types";
 import { getUserId } from "@/lib/supabase/server";
@@ -44,15 +45,21 @@ export default async function MemoriesPage({ searchParams }: PageProps<"/memorie
 
   const filter = parseFilter(sp);
   const [{ items, hasMore, page }, tags] = await Promise.all([searchMemories(userId, filter), getMemoryTags()]);
+  const covers = await getCoverThumbs(userId, items.map((m) => m.id));
   const filtering = Boolean(filter.q || filter.tag || filter.from || filter.to || (filter.scope && filter.scope !== "all"));
 
   return (
     <>
       <div className="flex items-start justify-between gap-4">
         <PageHeader eyebrow="memories" title="우리의 기록" />
-        <Link href="/memories/new" className={buttonVariants({ className: "shrink-0" })}>
-          <Plus /> 새 기록
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-2 sm:flex-row">
+          <Link href="/memories/new" className={buttonVariants()}>
+            <Plus /> 새 기록
+          </Link>
+          <Link href="/photos" className={buttonVariants({ variant: "outline" })}>
+            <ImageIcon /> 내 사진
+          </Link>
+        </div>
       </div>
       {sp.deleted && <div className="mb-6"><FormMessage message="기록을 삭제했어요." /></div>}
 
@@ -82,7 +89,7 @@ export default async function MemoriesPage({ searchParams }: PageProps<"/memorie
                 <span className="h-px flex-1 bg-border" />
               </h2>
               <div className="columns-1 gap-4 space-y-4 sm:columns-2 lg:columns-3">
-                {g.list.map((m) => <MemoryCard key={m.id} memory={m} />)}
+                {g.list.map((m) => <MemoryCard key={m.id} memory={m} coverUrl={covers.get(m.id)?.thumbUrl} />)}
               </div>
             </section>
           ))}

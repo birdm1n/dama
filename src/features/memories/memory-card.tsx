@@ -3,13 +3,17 @@ import { Lock } from "lucide-react";
 import { formatDate } from "@/lib/dates";
 import type { Memory } from "./types";
 
-/** 스크랩북 느낌의 기록 카드. 사진 기능 전이라 텍스트 카드다. */
-export function MemoryCard({ memory }: { memory: Memory }) {
+/** 스크랩북 느낌의 기록 카드. 사진이 있으면 첫 사진이 폴라로이드처럼 위에 놓인다. */
+export function MemoryCard({ memory, coverUrl }: { memory: Memory; coverUrl?: string | null }) {
   return (
     <Link
       href={`/memories/${memory.id}`}
       className="card-paper group block break-inside-avoid p-5 transition-colors hover:bg-beige/25"
     >
+      {coverUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={coverUrl} alt="" loading="lazy" className="-mx-2 -mt-2 mb-4 aspect-[4/3] w-[calc(100%+1rem)] max-w-none rounded-sm bg-beige object-cover" />
+      )}
       <div className="flex items-center justify-between gap-2 text-xs text-ink-muted">
         <time dateTime={memory.happened_on}>{formatDate(memory.happened_on)}</time>
         {memory.share_status === "draft" ? (
