@@ -1,0 +1,126 @@
+import { Client } from "pg";
+import { randomUUID } from "node:crypto";
+
+/**
+ * DB 테스트 헬퍼.
+ *
+ * 각 테스트는 하나의 트랜잭션 안에서 실행되고 끝나면 ROLLBACK 된다.
+ * 사용자 행동은 `as(user, ...)` 안에서 실제 Supabase와 동일하게
+ * `authenticated` 역할 + request.jwt.claims 로 실행되므로 RLS가 그대로 적용된다.
+ * 셋업(사용자 생성, 시간 조작)은 슈퍼유저로 한다.
+ */
+
+export type TestUser = { id: string; email: string; name: string };
+
+export class Db {
+  constructor(private client: Client) {}
+
+  /** 슈퍼유저(RLS 우회) 권한으로 실행 — 셋업과 검증 전용 */
+  async admin<T = Record<string, unknown>>(sql: string, params: unknown[] = []) {
+    await this.client.query("reset role");
+    await this.client.query("select set_config('request.jwt.claims', '', true)");
+    const res = await this.client.query(sql, params);
+    return res.rows as T[];
+  }
+
+  async createUser(name: string): Promise<TestUser> {
+    const id = randomUUID();
+    const email = `${name.toLowerCase()}-${id.slice(0, 8)}@test.local`;
+    await this.admin(
+      "insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)",
+      [id, email, JSON.stringify({ display_name: name })],
+    );
+    return { id, email, name };
+  }
+
+  /** 같은 커넥션을 쓰므로 순차 생성한다 */
+  async createUsers(...names: string[]) {
+    const users: TestUser[] = [];
+    for (const n of names) users.push(await this.createUser(n));
+    return users;
+  }
+
+  /** 특정 사용자(또는 anon)로 SQL 실행. 오류가 나도 트랜잭션은 계속 쓸 수 있다. */
+  async as<T = Record<string, unknown>>(
+    user: TestUser | "anon",
+    sql: string,
+    params: unknown[] = [],
+  ): Promise<T[]> {
+    await this.client.query("savepoint as_user");
+    try {
+      if (user === "anon") {
+        await this.client.query("select set_config('request.jwt.claims', $1, true)", [
+          JSON.stringify({ role: "anon" }),
+        ]);
+        await this.client.query("set local role anon");
+      } else {
+        await this.client.query("select set_config('request.jwt.claims', $1, true)", [
+          JSON.stringify({ sub: user.id, role: "authenticated", email: user.email }),
+        ]);
+        await this.client.query("set local role authenticated");
+      }
+      const res = await this.client.query(sql, params);
+      await this.client.query("reset role");
+      await this.client.query("release savepoint as_user");
+      return res.rows as T[];
+    } catch (err) {
+      await this.client.query("rollback to savepoint as_user");
+      await this.client.query("reset role");
+      throw err;
+    }
+  }
+
+  // ---- 자주 쓰는 RPC 래퍼 ----
+  async createCouple(user: TestUser, name: string | null = null) {
+    const [row] = await this.as<{ id: string }>(user, "select public.create_couple($1) as id", [name]);
+    return row.id;
+  }
+
+  async createInvite(user: TestUser) {
+    const [row] = await this.as<{ token: string; expires_at: Date }>(
+      user,
+      "select * from public.create_invite()",
+    );
+    return row;
+  }
+
+  async acceptInvite(user: TestUser, token: string) {
+    const [row] = await this.as<{ id: string }>(user, "select public.accept_invite($1) as id", [token]);
+    return row.id;
+  }
+
+  /** 두 사람을 커플로 연결하고 couple_id 반환 */
+  async pair(a: TestUser, b: TestUser, name: string | null = null) {
+    const coupleId = await this.createCouple(a, name);
+    const { token } = await this.createInvite(a);
+    await this.acceptInvite(b, token);
+    return coupleId;
+  }
+}
+
+export async function withTx(fn: (db: Db) => Promise<void>) {
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error("DATABASE_URL이 없습니다. `npm run test:db`로 실행하세요.");
+  const client = new Client({ connectionString: url });
+  await client.connect();
+  try {
+    await client.query("begin");
+    await fn(new Db(client));
+  } finally {
+    await client.query("rollback").catch(() => {});
+    await client.end();
+  }
+}
+
+/** Postgres 예외 메시지(대문자 코드)로 실패를 검증 */
+export async function expectDbError(promise: Promise<unknown>, pattern: RegExp | string) {
+  try {
+    await promise;
+  } catch (err) {
+    const message = (err as Error).message;
+    const ok = typeof pattern === "string" ? message.includes(pattern) : pattern.test(message);
+    if (!ok) throw new Error(`예상한 오류(${pattern})가 아닌 다른 오류: ${message}`);
+    return;
+  }
+  throw new Error(`오류(${pattern})가 나야 하는데 성공했습니다`);
+}

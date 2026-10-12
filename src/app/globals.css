@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/*
+ * 디자인 토큰 — 이 블록이 유일한 출처다.
+ * Tailwind 유틸리티(bg-bg, text-ink, bg-rose …)와 CSS 변수(var(--color-rose))로 모두 쓸 수 있다.
+ */
+@theme {
+  --color-bg: #faf7f2;
+  --color-surface: #ffffff;
+  --color-ink: #39352f;
+  --color-ink-muted: #7a736a;
+  --color-rose: #d9aaa5;
+  --color-rose-deep: #b9817b;
+  --color-sage: #a8b49a;
+  --color-sage-deep: #7f8c71;
+  --color-beige: #ede2d5;
+  --color-border: #e9e2d9;
+  --color-danger: #b5534b;
+
+  --font-sans: var(--font-body), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-serif: var(--font-display), "AppleMyungjo", "Nanum Myeongjo", Georgia, serif;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.875rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+
+  /* 강한 그림자 금지: 아주 옅은 종이 그림자만 */
+  --shadow-paper: 0 1px 2px rgb(57 53 47 / 0.04), 0 4px 16px rgb(57 53 47 / 0.05);
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+  }
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-rose) 45%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-rose-deep);
+    outline-offset: 2px;
+  }
+}
+
+@utility font-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+}
+
+/* 폴라로이드/스크랩북 카드 */
+@utility card-paper {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-paper);
+}
