@@ -124,3 +124,27 @@ export async function expectDbError(promise: Promise<unknown>, pattern: RegExp |
   }
   throw new Error(`오류(${pattern})가 나야 하는데 성공했습니다`);
 }
+
+export type MemoryInput = {
+  title: string;
+  body?: string;
+  happenedOn?: string;
+  tags?: string[];
+  share?: "draft" | "shared";
+};
+
+/** user가 자기 활성 커플에 기록을 쓴다 (실제 앱과 같은 INSERT 경로) */
+export async function writeMemory(db: Db, user: TestUser, coupleId: string, m: MemoryInput) {
+  const [row] = await db.as<{ id: string }>(
+    user,
+    `insert into memories (couple_id, author_id, title, body, happened_on, tags, share_status)
+     values ($1, $2, $3, $4, $5, $6, $7) returning id`,
+    [coupleId, user.id, m.title, m.body ?? "", m.happenedOn ?? "2026-05-01", m.tags ?? [], m.share ?? "draft"],
+  );
+  return row.id;
+}
+
+export async function titlesSeenBy(db: Db, user: TestUser) {
+  const rows = await db.as<{ title: string }>(user, "select title from memories order by title");
+  return rows.map((r) => r.title);
+}

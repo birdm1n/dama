@@ -27,24 +27,27 @@
 RPC: `create_couple`, `create_invite`(24h, 1회용, 이전 초대 자동 취소, 시간당 10회 제한), `get_invite_preview`, `accept_invite`, `revoke_invite`, `leave_couple`.
 정리 작업: `private.purge_dissolved_couples()` — pg_cron이 매일 실행.
 
-## Couple Memory 📝
+## Couple Memory ✅
 
 ```
 memories
   id, couple_id, author_id
-  title, body, happened_on date, happened_at timestamptz null
-  share_status  'draft' | 'shared'        -- draft: 작성자만 / shared: 커플 둘 다
-  search_tsv    tsvector (generated: 'simple' config, title+body+태그)
-  created_at, updated_at, deleted_at
-  index: (couple_id, happened_on desc), gin(search_tsv), gin(title gin_trgm_ops)
-
-memory_tags (memory_id, tag_id)      tags (id, couple_id, name, unique(couple_id, lower(name)))
+  title (1~80자), body (≤5000자), happened_on date
+  tags text[]          -- 최대 10개, 각 1~20자, 대소문자 무시 중복 불가 (private.valid_tags)
+  share_status 'draft' | 'shared', shared_at (트리거가 서버 시각으로 설정)
+  created_at, updated_at
+  index: (couple_id, happened_on desc, created_at desc), gin(tags)
 ```
 
-RLS: 조회 = (`share_status = 'shared'` 이고 활성 멤버) 또는 (`author_id = auth.uid()` 이고 활성 멤버) + 해제 보관 규칙.
-수정·삭제 = 작성자 본인만. 공유 전환(`draft → shared`)은 작성자만 할 수 있다 — "상대에게 자동 공유 금지" 원칙.
-
-검색: 한국어 형태소 사전이 없으므로 `simple` tsvector + `pg_trgm` 부분 일치를 함께 쓴다.
+- 태그를 별도 테이블 대신 `text[]`로 둔 이유: 태그 이름이 기록과 **같은 가시성**을 갖는다. 상대가 볼 수 없는 초안의 태그 이름이 태그 목록으로 새지 않는다.
+- RLS
+  - 조회: 활성 멤버이고 (`shared` 이거나 내가 작성) / 또는 보관 중인 이전 커플에서 내가 작성.
+  - 쓰기: `author_id = auth.uid()` + 활성 멤버. 수정·삭제·공유 전환은 작성자만.
+  - 컬럼 권한: `couple_id`, `author_id`, `shared_at`은 수정 불가.
+- 검색 `search_memories(q, tag, from, to, scope, limit, offset)` — SECURITY INVOKER라 호출자 RLS가 그대로 적용된다. 현재 활성 커플만 대상. 제목·본문·태그 부분 일치(ILIKE, `%`·`_` 이스케이프).
+  한국어 형태소 사전이 없어 부분 일치로 충분하다고 판단. 커플당 기록 수가 많아지면 `pg_trgm` GIN 인덱스를 추가한다.
+- `my_memory_tags()` — 필터 칩용 태그 목록(역시 RLS 적용).
+- 삭제는 하드 삭제(확인 단계 있음).
 
 ## 사진 📝
 

@@ -42,3 +42,33 @@ export async function signUpAndConfirm(browser: Browser, user: E2EUser, next?: s
   await page.waitForURL((url) => !url.pathname.startsWith("/auth/"));
   return page;
 }
+
+/** 두 계정을 가입·인증시키고 커플로 연결한 뒤 두 페이지를 돌려준다 */
+export async function pairedCouple(browser: Browser, names: [string, string] = ["Ana", "Ben"]) {
+  const ua = newUser(names[0]);
+  const ub = newUser(names[1]);
+  const a = await signUpAndConfirm(browser, ua);
+  await a.goto("/couple");
+  await a.getByRole("button", { name: "커플 공간 만들기" }).click();
+  await a.getByRole("button", { name: "초대 링크 만들기" }).click();
+  const invitePath = new URL((await a.locator("p.font-mono").innerText()).trim()).pathname;
+  const b = await signUpAndConfirm(browser, ub, invitePath);
+  await b.getByRole("button", { name: "초대 수락하고 연결하기" }).click();
+  await expect(b.getByText(/연결됐어요!/)).toBeVisible();
+  return { a, b, ua, ub };
+}
+
+export async function writeMemory(
+  page: Page,
+  m: { title: string; body?: string; date?: string; tags?: string; share: "나만 보기" | "우리 둘 다 보기" },
+) {
+  await page.goto("/memories/new");
+  await page.getByLabel("제목").fill(m.title);
+  if (m.date) await page.getByLabel("날짜").fill(m.date);
+  if (m.body) await page.getByLabel("메모").fill(m.body);
+  if (m.tags) await page.getByLabel("태그").fill(m.tags);
+  await page.getByRole("radio", { name: new RegExp(m.share) }).check();
+  await page.getByRole("button", { name: "기록 저장" }).click();
+  await expect(page.getByText("저장했어요.")).toBeVisible();
+  return page.url().split("/memories/")[1].split("?")[0];
+}

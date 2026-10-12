@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { Metadata } from "next";
+import { buttonVariants } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { FormMessage } from "@/components/ui/input";
@@ -29,6 +31,9 @@ export default async function CouplePage({ searchParams }: PageProps<"/couple">)
           보관된 뒤 영구 삭제돼요.
         </CardDescription>
       ))}
+      <Link href="/couple/archive" className={buttonVariants({ variant: "outline", size: "sm", className: "mt-4" })}>
+        보관함 보기 · 내보내기
+      </Link>
     </Card>
   );
 
