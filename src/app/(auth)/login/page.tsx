@@ -21,6 +21,9 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         </p>
       )}
       <LoginForm next={next} />
+      <p className="mt-4 text-center text-sm">
+        <Link href="/forgot-password" className="text-ink-muted underline underline-offset-4">비밀번호를 잊었어요</Link>
+      </p>
       <p className="mt-6 text-center text-sm text-ink-muted">
         처음이신가요?{" "}
         <Link href={`/signup?next=${encodeURIComponent(next)}`} className="text-ink underline underline-offset-4">

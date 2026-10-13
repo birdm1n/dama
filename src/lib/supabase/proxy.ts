@@ -4,7 +4,7 @@ import { buildCsp, newNonce } from "@/lib/security/csp";
 import { getSupabaseEnv } from "./env";
 
 /** 로그인이 필요한 경로 접두사. 실제 권한 검증은 DB(RLS)와 서버 코드가 다시 한다. */
-const PROTECTED_PREFIXES = ["/home", "/couple", "/memories", "/photos", "/map", "/discover", "/invite", "/admin"];
+const PROTECTED_PREFIXES = ["/home", "/couple", "/memories", "/photos", "/map", "/discover", "/invite", "/admin", "/settings"];
 
 export async function updateSession(request: NextRequest) {
   const env = getSupabaseEnv();

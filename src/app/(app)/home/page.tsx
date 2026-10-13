@@ -10,7 +10,8 @@ import { daysTogether } from "@/lib/dates";
 
 export const metadata: Metadata = { title: "홈" };
 
-export default async function HomePage() {
+export default async function HomePage({ searchParams }: PageProps<"/home">) {
+  const sp = await searchParams;
   const userId = (await getUserId())!;
   const [profile, couple] = await Promise.all([getMyProfile(userId), getMyCouple(userId)]);
   const partner = couple?.members.find((m) => !m.isMe);
@@ -30,6 +31,9 @@ export default async function HomePage() {
         )}
       </PageHeader>
 
+      {sp.password === "changed" && (
+        <p role="status" className="mb-6 rounded-md bg-sage/20 px-4 py-3 text-sm text-sage-deep">비밀번호를 바꿨어요.</p>
+      )}
       {!partner && (
         <Card className="mb-6 bg-beige/40">
           <CardTitle>{couple ? "상대를 초대해 주세요" : "커플 공간 만들기"}</CardTitle>

@@ -6,7 +6,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { getSupabaseEnv } from "@/lib/supabase/env";
 import { getUserId } from "@/lib/supabase/server";
 
-export default async function LandingPage() {
+export default async function LandingPage({ searchParams }: PageProps<"/">) {
+  const sp = await searchParams;
   const configured = Boolean(getSupabaseEnv());
   if (configured && (await getUserId())) redirect("/home");
 
@@ -15,6 +16,11 @@ export default async function LandingPage() {
       <header>
         <Logo />
       </header>
+      {sp.deleted && (
+        <p role="status" className="mt-6 rounded-md bg-sage/20 px-4 py-3 text-sm text-sage-deep">
+          탈퇴가 완료됐어요. 그동안 고마웠어요.
+        </p>
+      )}
 
       <section className="flex flex-1 flex-col justify-center gap-12 py-16 md:flex-row md:items-center">
         <div className="max-w-md">

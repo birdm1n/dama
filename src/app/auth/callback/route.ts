@@ -16,6 +16,8 @@ export async function GET(request: NextRequest) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return relativeRedirect(next);
   }
+  // 비밀번호 재설정 링크가 실패하면(만료·다른 브라우저) 재설정 화면에서 다시 요청하게 한다
+  if (next === "/reset-password") return relativeRedirect("/forgot-password?expired=1");
   return relativeRedirect("/login?error=confirm");
 }
 

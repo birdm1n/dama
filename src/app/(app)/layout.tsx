@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings } from "lucide-react";
 import { Logo } from "@/components/layout/logo";
 import { BottomNav, TopNav } from "@/components/layout/app-nav";
 import { signOut } from "@/features/auth/actions";
@@ -21,7 +21,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
             {isAdmin && (
               <a href="/admin/reports" className="rounded-full border border-border px-2.5 py-1 text-xs text-ink-muted hover:text-ink">운영</a>
             )}
-            <span className="hidden text-sm text-ink-muted sm:inline">{profile?.display_name}</span>
+            <a href="/settings" className="rounded-full p-2 text-sm text-ink-muted hover:bg-beige/60 hover:text-ink" aria-label="설정" title="설정">
+              <span className="hidden sm:inline">{profile?.display_name}</span>
+              <Settings className="size-4 sm:hidden" />
+            </a>
             <form action={signOut}>
               <button
                 type="submit"
