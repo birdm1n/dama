@@ -46,7 +46,7 @@ export function buildCourses(places: MapPlace[]): Course[] {
 }
 
 /** 기록 순서 연결선. 같은 지점이 연속되면 한 번만. 2곳 미만이면 선 없음. */
-export function courseLine(places: MapPlace[]): [number, number][] | null {
+export function courseLine(places: { lat: number; lng: number }[]): [number, number][] | null {
   const coords: [number, number][] = [];
   for (const p of places) {
     const last = coords[coords.length - 1];

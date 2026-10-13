@@ -4,6 +4,8 @@ import {
 } from "./helpers";
 
 async function setup(db: Db) {
+  // 다른 실행에서 남은 대기열 항목 제외 (트랜잭션 롤백으로 복구됨)
+  await db.admin("delete from private.storage_deletion_queue");
   const [a, b, c, d] = await db.createUsers("Ana", "Ben", "Cy", "Di");
   const x = await db.pair(a, b, "X");
   const y = await db.pair(c, d, "Y");

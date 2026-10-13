@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft, ImagePlus, Lock, MapPin, Pencil } from "lucide-react";
+import { ArrowLeft, Globe, ImagePlus, Lock, MapPin, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/input";
 import { getMyCouple } from "@/features/couple/queries";
@@ -105,6 +105,14 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
           />
           <DeleteMemory id={memory.id} />
         </div>
+      )}
+      {memory.isMine && !archived && (
+        <p className="mt-4 text-xs text-ink-muted">
+          <Link href={`/discover/new?memory=${memory.id}`} className="inline-flex items-center gap-1 underline underline-offset-2">
+            <Globe className="size-3.5" /> 공개 게시물로 만들기
+          </Link>{" "}
+          — 고른 사진·장소만 다른 커플에게 공개돼요. 이 기록 자체는 공개되지 않아요.
+        </p>
       )}
       {!memory.isMine && (
         <p className="mt-5 text-xs text-ink-muted">{memory.authorName}님이 공유한 기록이에요. 작성자만 수정할 수 있어요.</p>

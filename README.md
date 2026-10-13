@@ -7,9 +7,8 @@
 - 기록: 작성·수정·삭제, 월별 타임라인, 검색·태그·기간·공개범위 필터, 초안(나만 보기) ↔ 공유 전환, 해제 후 보관함·JSON 내보내기
 - 사진: 여러 장 선택 → EXIF 촬영 시각·위치 확인/수정/제거 → 비슷한 시간·장소끼리 기록 후보 제안 → 업로드(위치 정보 없는 WebP로 재인코딩), 기록에 붙이기, 내 사진함
 - 지도: 기록에 장소 추가(지도에서 고르기 / 사진 위치 / 현재 위치 / 좌표 입력), 전체 장소 보기, 날짜별 코스(기록 순서 점선 — 실제 이동 경로 아님을 표시)
+- 발견: 내 기록에서 고른 글·사진·장소만 사본으로 공개(익명), 피드·검색·코스/장소 필터, 좋아요·저장, 신고(3명 이상 신고 시 자동 숨김), 작성자 차단(양방향), 숨기기·삭제
 - 공통 레이아웃·디자인 토큰
-
-발견(커뮤니티)은 아직 없다.
 
 ### 브라우저 한계 (정직하게)
 - 새로 찍은 사진을 자동으로 감지할 수 없다. 사용자가 직접 고른다.
@@ -45,12 +44,15 @@ npm run dev                 # http://127.0.0.1:3000
 `npm run test:db`는 `DATABASE_URL`이 없으면 임시 Postgres 클러스터를 띄워 Supabase 흉내(`tests/db/supabase-shim.sql`)와 마이그레이션을 적용해 테스트한다.
 실제 Supabase DB로 돌리려면: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run test:db`
 
+## 운영 (아직 화면 없음)
+- 신고가 3건 이상 쌓인 글은 자동으로 `under_review`가 되어 숨겨진다. 검토·복구·신고 처리 화면은 아직 없어서 운영자가 DB에서 직접 처리해야 한다(`post_reports.status`, `public_posts.status`).
+
 ## 정기 작업
 
 | 작업 | 방법 |
 |---|---|
 | 해제 후 30일 지난 커플 데이터 삭제 | DB의 pg_cron이 매일 `private.purge_dissolved_couples()` 실행 (마이그레이션이 등록) |
-| 삭제된 사진 파일 정리 | 스케줄러가 `POST /api/cron/storage-cleanup` 호출 (`Authorization: Bearer $CRON_SECRET`, 서버에 `SUPABASE_SERVICE_ROLE_KEY` 필요) |
+| 삭제된 사진·공개 글 이미지 파일 정리 | 스케줄러가 `POST /api/cron/storage-cleanup` 호출 (`Authorization: Bearer $CRON_SECRET`, 서버에 `SUPABASE_SERVICE_ROLE_KEY` 필요) |
 
 ## 배포 (계획)
 

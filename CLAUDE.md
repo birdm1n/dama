@@ -44,6 +44,7 @@ Pinterest 감성의 따뜻한 에디토리얼. 폴라로이드·스크랩북 카
 - **기록 공유**: 새 기록 기본값은 `draft`(나만 보기). `shared` 전환은 작성자만. 상대 기록은 읽기만. 태그는 `memories.tags text[]`(가시성이 기록과 같도록).
 - **사진**: EXIF는 브라우저에서 읽고 사용자가 확인한 값만 저장. 저장 파일은 WebP 재인코딩(EXIF 없음). 상대는 공유된 기록에 붙은 사진만 본다. 파일 삭제는 대기열 + `/api/cron/storage-cleanup`(service_role은 이 작업에서만).
 - **장소**: `memory_places`는 기록에 속한다(가시성 = 기록). 출처(exif/device/manual)·정확도 저장, manual은 정확도 없음. 지도 연결선은 기록 순서이며 지도 위 범례로 "실제 이동 경로 아님"을 항상 표시. 주소 검색 없음.
+- **발견**: 공개 글은 기록의 사본(원본 참조·couple_id 없음), 공개 화면은 아무것도 선택 안 된 상태로 시작 + 확인 체크 필수. 작성자는 "익명의 커플". 이미지는 서버에서 WebP 메타데이터 청크를 한 번 더 제거해 비공개 버킷(`post-images`)에 두고 서명 URL로만. 차단은 양방향. 신고 3명 이상 → 자동 `under_review`. 운영 화면은 아직 없음.
 - 지도: MapLibre(`src/features/map/map-view.tsx`), 워커 파일은 `scripts/copy-maplibre.mjs`가 `public/vendor/`로 복사(빌드·dev 전에 자동). 배경 스타일 실패 시 단색 배경으로 대체.
 - 샘플 데이터는 `supabase/seed.sql`(로컬 전용, 모든 이름·제목에 `[샘플]`).
 

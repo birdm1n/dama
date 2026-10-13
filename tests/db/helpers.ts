@@ -218,3 +218,16 @@ export async function addPlace(db: Db, user: TestUser, coupleId: string, memoryI
   );
   return row.id;
 }
+
+export async function createPost(
+  db: Db,
+  user: TestUser,
+  p: { title?: string; kind?: "place" | "course"; tags?: string[]; area?: string | null } = {},
+) {
+  const [row] = await db.as<{ id: string }>(
+    user,
+    "insert into public_posts (author_id, kind, title, tags, area) values ($1, $2, $3, $4, $5) returning id",
+    [user.id, p.kind ?? "place", p.title ?? "공개 글", p.tags ?? [], p.area ?? null],
+  );
+  return row.id;
+}
