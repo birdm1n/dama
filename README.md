@@ -64,7 +64,27 @@ npm run dev                 # http://127.0.0.1:3000
 | 해제 후 30일 지난 커플 데이터 삭제 | DB의 pg_cron이 매일 `private.purge_dissolved_couples()` 실행 (마이그레이션이 등록) |
 | 삭제된 사진·공개 글 이미지 파일 정리 | 스케줄러가 `POST /api/cron/storage-cleanup` 호출 (`Authorization: Bearer $CRON_SECRET`, 서버에 `SUPABASE_SERVICE_ROLE_KEY` 필요) |
 
-## 배포 (계획)
+## 배포 (Cloudflare Workers + Supabase)
 
-Cloudflare Workers + `@opennextjs/cloudflare`, Supabase 호스팅 프로젝트. 아직 설정하지 않았다.
-배포 시 `NEXT_PUBLIC_SITE_URL`과 Supabase Auth의 Site URL / Redirect URLs(`https://도메인/**`)를 맞춰야 한다.
+Cloudflare Workers에서 `@opennextjs/cloudflare`로 실행한다. 로컬에서 Cloudflare 런타임(workerd)으로 전체 E2E를 돌려 확인했다(실제 Cloudflare 계정 배포는 아직 안 함).
+
+1. **Supabase 프로젝트**: `npx supabase link` → `npx supabase db push`로 마이그레이션 적용.
+   - Auth → URL Configuration: Site URL = 배포 주소, Redirect URLs에 `https://<도메인>/**` 추가.
+   - Auth → 이메일 인증 켜기, SMTP 설정(기본 메일 발송은 개수 제한이 있다).
+   - Database → Extensions에서 `pg_cron` 켜기(해제된 커플 30일 후 삭제 스케줄은 마이그레이션이 등록한다. 켜기 전에 마이그레이션을 적용했다면 `select cron.schedule('purge-dissolved-couples', '17 3 * * *', 'select private.purge_dissolved_couples()');`를 한 번 실행).
+2. **빌드 환경변수**(CI): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`. `NEXT_PUBLIC_*`는 빌드할 때 코드에 들어가므로 **빌드 시점**에 있어야 한다.
+3. **런타임 비밀값**(서버 전용, 커밋 금지):
+   ```bash
+   npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # 파일 정리 작업에만 사용
+   npx wrangler secret put CRON_SECRET                  # 16자 이상 임의 문자열
+   ```
+4. **배포**: `npm run cf:deploy` (`wrangler.jsonc`의 `name`이 워커 이름).
+5. **정기 작업**: `wrangler.jsonc`의 Cron Trigger(매시 17분)가 `worker.ts`의 `scheduled`에서 같은 워커 안의 `/api/cron/storage-cleanup`을 호출해 삭제된 사진·공개 글 이미지 파일을 지운다. 외부 스케줄러는 필요 없다.
+
+로컬에서 Cloudflare 런타임으로 확인: `.dev.vars.example`을 `.dev.vars`로 복사해 값을 채우고 `npm run cf:preview` (http://127.0.0.1:8787). 크론은 `npx wrangler dev --test-scheduled` 후 `curl "http://127.0.0.1:8787/__scheduled?cron=17+*+*+*+*"`.
+
+### 알아둘 점
+- **OpenNext 패치**: `@opennextjs/cloudflare` 1.20.7은 Next 16.4가 새로 읽는 `preview-props.json`을 워커에 넣지 않아 모든 페이지가 500이 된다. `patches/`의 한 줄 패치를 `patch-package`가 설치 때 적용한다(버전은 정확히 고정). 상위 버전에서 고쳐지면 패치를 지우고 버전을 올린다.
+- Next 16의 `proxy.ts`(세션 갱신·보호 경로)는 Node.js 런타임에서만 돈다. OpenNext는 Cloudflare에서의 Node 미들웨어를 "실험적"이라고 표시한다. 로컬 workerd에서 로그인·세션 유지를 포함한 E2E는 모두 통과했다.
+- 모든 페이지가 로그인 사용자별로 동적이라 ISR/증분 캐시(R2)는 쓰지 않는다.
+- `npm audit`에 남은 경고(`braces`)는 ESLint 설정·patch-package 등 개발 도구 의존성이며 배포 번들에는 포함되지 않는다.

@@ -55,6 +55,11 @@ Pinterest 감성의 따뜻한 에디토리얼. 폴라로이드·스크랩북 카
 - 기능별 코드: `src/features/<기능>/{actions,queries,components}.ts(x)`
 - Next.js 16은 학습 데이터와 API가 다를 수 있다. `AGENTS.md`와 `node_modules/next/dist/docs/`를 먼저 확인.
 
+## 배포·도구
+- Cloudflare Workers(`@opennextjs/cloudflare`, `wrangler.jsonc`, 진입점 `worker.ts` — 크론이 파일 정리 라우트를 호출). `npm run cf:preview`로 로컬 workerd 실행.
+- `patches/@opennextjs+cloudflare+1.20.7.patch`(Next 16.4 `preview-props.json` 누락 수정)를 `patch-package`가 적용한다. OpenNext 버전을 올릴 때 패치가 아직 필요한지 확인.
+- DB 타입: 마이그레이션을 바꾸면 `npm run gen:types`(로컬 Supabase 필요)로 `src/lib/supabase/database.types.ts`를 다시 만든다. Supabase 클라이언트는 이 타입으로 검사된다.
+
 ## DB 작성 규칙
 - public 스키마 새 테이블: **RLS 켜기 + `revoke all ... from public, anon, authenticated` 후 필요한 권한만 grant**. (Supabase는 기본으로 anon/authenticated에 전부 grant한다. `tests/db/rls-isolation.test.ts`가 RLS 누락을 잡는다.)
 - 상태 전이·다른 사용자 행을 건드리는 작업은 `SECURITY DEFINER` + `set search_path = ''` RPC로. 오류는 대문자 코드(`raise exception 'INVITE_EXPIRED'`)로 던지고 `src/features/couple/errors.ts`에 문구 추가(단위 테스트가 누락을 잡는다).

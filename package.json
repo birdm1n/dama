@@ -12,11 +12,16 @@
     "test:unit": "vitest run --project unit",
     "test:db": "bash scripts/test-db.sh",
     "test:e2e": "playwright test",
-    "postinstall": "node scripts/copy-maplibre.mjs",
+    "postinstall": "patch-package && node scripts/copy-maplibre.mjs",
     "predev": "node scripts/copy-maplibre.mjs",
-    "prebuild": "node scripts/copy-maplibre.mjs"
+    "prebuild": "node scripts/copy-maplibre.mjs",
+    "gen:types": "supabase gen types typescript --local --schema public > src/lib/supabase/database.types.ts",
+    "cf:build": "opennextjs-cloudflare build",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "1.20.7",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.3",
     "class-variance-authority": "^0.7.1",
@@ -42,10 +47,12 @@
     "dotenv": "^18.0.7",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "patch-package": "8.0.0",
     "pg": "^8.23.1",
     "supabase": "^2.120.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^5.0.4"
+    "vitest": "^5.0.4",
+    "wrangler": "4.148.0"
   }
 }

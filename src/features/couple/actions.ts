@@ -20,8 +20,8 @@ export async function createCouple(_prev: FormState, formData: FormData): Promis
 
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_couple", {
-    p_name: parsed.data.name || null,
-    p_anniversary_on: parsed.data.anniversaryOn || null,
+    p_name: parsed.data.name || undefined,
+    p_anniversary_on: parsed.data.anniversaryOn || undefined,
   });
   if (error) return { error: coupleErrorMessage(error.message) };
   revalidatePath("/", "layout");

@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // 서비스명을 바꾸면 여기 name도 함께 바꾼다
+  "name": "dama",
+  "main": "worker.ts",
+  "compatibility_date": "2026-09-01",
+  // 서버는 환경변수에 정한 Supabase 주소로만 요청한다(사용자 입력 URL로 fetch하지 않음)
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "observability": { "enabled": true },
+  // 삭제된 사진·공개 글 이미지 파일 정리 (매시 17분)
+  "triggers": { "crons": ["17 * * * *"] }
+  // 비밀값은 커밋하지 않는다: wrangler secret put SUPABASE_SERVICE_ROLE_KEY / CRON_SECRET
+}

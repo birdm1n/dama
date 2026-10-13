@@ -25,10 +25,10 @@ export async function searchMemories(userId: string, f: MemoryFilter) {
   const supabase = await createClient();
   const page = f.page ?? 1;
   const { data, error } = await supabase.rpc("search_memories", {
-    p_query: f.q ?? null,
-    p_tag: f.tag ?? null,
-    p_from: f.from ?? null,
-    p_to: f.to ?? null,
+    p_query: f.q,
+    p_tag: f.tag,
+    p_from: f.from,
+    p_to: f.to,
     p_scope: f.scope ?? "all",
     p_limit: PAGE_SIZE + 1,
     p_offset: (page - 1) * PAGE_SIZE,

@@ -56,9 +56,9 @@ export async function getFeed(userId: string, f: { q?: string; kind?: "place" | 
   const supabase = await createClient();
   const page = f.page ?? 1;
   const { data, error } = await supabase.rpc("search_public_posts", {
-    p_query: f.q ?? null,
-    p_kind: f.kind ?? null,
-    p_tag: f.tag ?? null,
+    p_query: f.q,
+    p_kind: f.kind,
+    p_tag: f.tag,
     p_limit: FEED_PAGE + 1,
     p_offset: (page - 1) * FEED_PAGE,
   });

@@ -12,7 +12,7 @@ export async function moderatePost(_prev: FormState, formData: FormData): Promis
   const decision = formData.get("decision") === "remove" ? "remove" : "restore";
   const note = String(formData.get("note") ?? "").slice(0, 500);
   const supabase = await createClient();
-  const { error } = await supabase.rpc("moderate_post", { p_post_id: postId, p_decision: decision, p_note: note || null });
+  const { error } = await supabase.rpc("moderate_post", { p_post_id: postId, p_decision: decision, p_note: note || undefined });
   if (error) return { error: coupleErrorMessage(error.message) };
   revalidatePath("/admin/reports");
   revalidatePath("/discover");

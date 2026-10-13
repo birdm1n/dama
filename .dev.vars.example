@@ -1,0 +1,7 @@
+# `npm run cf:preview` (wrangler, 로컬 workerd)용 런타임 값. .env.local과 같은 값을 넣는다.
+# NEXT_PUBLIC_* 값은 빌드할 때 코드에 들어가므로 빌드 시점의 .env.local / 환경변수도 맞춰야 한다.
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+NEXT_PUBLIC_SITE_URL=http://127.0.0.1:8787
+SUPABASE_SERVICE_ROLE_KEY=
+CRON_SECRET=
