@@ -34,7 +34,8 @@ type Row = {
   thumb_path: string;
 };
 
-const SIGNED_URL_SECONDS = 60 * 60;
+// 서명 URL은 발급 후 취소할 수 없다. 숨김·차단·공유 해제 후에도 남는 시간을 줄이려고 짧게 둔다(화면을 열 때마다 새로 발급).
+const SIGNED_URL_SECONDS = 10 * 60;
 const COLS = "id, memory_id, uploader_id, width, height, taken_at, taken_at_source, lat, lng, location_source, accuracy_m, storage_path, thumb_path";
 
 /** 서명 URL 발급. Storage 정책상 볼 수 없는 파일은 URL이 나오지 않는다. */

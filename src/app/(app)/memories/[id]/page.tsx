@@ -33,6 +33,7 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
         <ArrowLeft className="size-4" /> {archived ? "보관함" : "기록"}
       </Link>
       {sp.saved && <div className="mb-4"><FormMessage message="저장했어요." /></div>}
+      {typeof sp.attached === "string" && <div className="mb-4"><FormMessage message={`사진 ${Number(sp.attached) || 0}장을 붙였어요.`} /></div>}
 
       <div className="card-paper p-6 md:p-10">
         <div className="flex flex-wrap items-center gap-2 text-sm text-ink-muted">
@@ -94,6 +95,9 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
           </Link>
           <Link href={`/photos/upload?memory=${memory.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <ImagePlus /> 사진 추가
+          </Link>
+          <Link href={`/memories/${memory.id}/attach`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            사진함에서
           </Link>
           <ShareToggle
             id={memory.id}

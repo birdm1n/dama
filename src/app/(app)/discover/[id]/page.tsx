@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowLeft, Bookmark, Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/input";
 import { deletePost, setPostVisibility, toggleBookmark, toggleLike } from "@/features/discover/actions";
 import { ReportAndBlock } from "@/features/discover/post-controls";
@@ -29,6 +29,7 @@ export default async function PostPage({ params, searchParams }: PageProps<"/dis
         <ArrowLeft className="size-4" /> 발견
       </Link>
       {sp.published && <div className="mb-4"><FormMessage message="공개했어요. 언제든 숨기거나 지울 수 있어요." /></div>}
+      {sp.edited && <div className="mb-4"><FormMessage message="수정했어요." /></div>}
 
       <header className="mb-6">
         <p className="text-xs text-ink-muted">
@@ -37,7 +38,11 @@ export default async function PostPage({ params, searchParams }: PageProps<"/dis
         <h1 className="mt-2 font-display text-3xl leading-tight">{post.title}</h1>
         {post.isMine && post.status !== "published" && (
           <p className="mt-3 rounded-md bg-beige px-3 py-2 text-sm">
-            {post.status === "hidden" ? "숨긴 글이에요. 나만 볼 수 있어요." : "여러 사람의 신고로 숨겨졌고 검토 중이에요. 다시 공개할 수 없어요."}
+            {post.status === "hidden"
+              ? "숨긴 글이에요. 나만 볼 수 있어요."
+              : post.status === "removed"
+                ? "운영 정책에 따라 내려진 글이에요. 다른 사람에게 보이지 않고 다시 공개할 수 없어요. 삭제는 할 수 있어요."
+                : "여러 사람의 신고로 숨겨졌고 검토 중이에요. 검토가 끝날 때까지 다시 공개할 수 없어요."}
           </p>
         )}
       </header>
@@ -98,7 +103,10 @@ export default async function PostPage({ params, searchParams }: PageProps<"/dis
         )}
         {post.isMine && (
           <>
-            {post.status !== "under_review" && (
+            {(post.status === "published" || post.status === "hidden") && (
+              <Link href={`/discover/${post.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>수정</Link>
+            )}
+            {(post.status === "published" || post.status === "hidden") && (
               <form action={setPostVisibility}>
                 <input type="hidden" name="postId" value={post.id} />
                 <input type="hidden" name="status" value={post.status === "published" ? "hidden" : "published"} />

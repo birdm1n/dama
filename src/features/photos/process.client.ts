@@ -48,6 +48,20 @@ async function encode(bitmap: ImageBitmap, maxEdge: number, quality: number) {
   return { blob, w, h };
 }
 
+/**
+ * 브라우저가 직접 열지 못하는 HEIC(아이폰 사진)를 libheif(WebAssembly)로 해석한다.
+ * 약 3MB라 HEIC를 만났을 때만 불러온다. (heic-to, LGPL-3.0 — 별도 파일로 로드)
+ */
+async function decodeHeic(file: File): Promise<ImageBitmap> {
+  try {
+    const { isHeic, heicTo } = await import("heic-to/next");
+    if (!(await isHeic(file))) throw new Error("not heic");
+    return await heicTo({ blob: file, type: "bitmap", options: { imageOrientation: "from-image" } });
+  } catch {
+    throw new UnsupportedImageError("decode");
+  }
+}
+
 export async function processPhoto(file: File): Promise<ProcessedPhoto> {
   if (file.size > MAX_INPUT_BYTES) throw new UnsupportedImageError("too-large");
   const meta = await readMeta(file);
@@ -55,8 +69,7 @@ export async function processPhoto(file: File): Promise<ProcessedPhoto> {
   try {
     bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
-    // 예: 이 브라우저가 HEIC를 해석하지 못하는 경우
-    throw new UnsupportedImageError("decode");
+    bitmap = await decodeHeic(file);
   }
   try {
     const main = await encode(bitmap, MAX_EDGE, 0.86);

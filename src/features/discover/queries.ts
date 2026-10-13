@@ -9,7 +9,7 @@ export type PostRow = {
   body: string;
   area: string | null;
   tags: string[];
-  status: "published" | "hidden" | "under_review";
+  status: "published" | "hidden" | "under_review" | "removed";
   like_count: number;
   bookmark_count: number;
   created_at: string;
@@ -17,7 +17,8 @@ export type PostRow = {
 
 export type PostCard = PostRow & { coverUrl: string | null; isMine: boolean; liked: boolean; bookmarked: boolean };
 
-const SIGNED_URL_SECONDS = 60 * 60;
+// 서명 URL은 발급 후 취소할 수 없다. 숨김·차단·공유 해제 후에도 남는 시간을 줄이려고 짧게 둔다(화면을 열 때마다 새로 발급).
+const SIGNED_URL_SECONDS = 10 * 60;
 
 async function sign(paths: string[]) {
   if (!paths.length) return new Map<string, string>();

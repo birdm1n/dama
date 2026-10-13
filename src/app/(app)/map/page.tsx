@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Info, Lock } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
+import { ScrollCurrentIntoView } from "@/components/layout/scroll-current-into-view";
 import { buttonVariants } from "@/components/ui/button";
 import { getMyCouple } from "@/features/couple/queries";
 import { buildCourses, courseLine, sourceLabel } from "@/features/map/course";
@@ -48,7 +49,7 @@ export default async function MapPage({ searchParams }: PageProps<"/map">) {
         {places.length ? `기록에 남긴 장소 ${places.length}곳` : "기록에 장소를 추가하면 여기에 표시돼요."}
       </PageHeader>
 
-      <nav aria-label="날짜별 코스" className="-mx-5 mb-4 flex gap-2 overflow-x-auto px-5 pb-1">
+      <ScrollCurrentIntoView label="날짜별 코스" className="-mx-5 mb-4 flex gap-2 overflow-x-auto px-5 pb-1">
         <Link href="/map" aria-current={!course ? "true" : undefined}
           className={cn("shrink-0 rounded-full border px-3 py-1.5 text-sm", !course ? "border-ink bg-ink text-bg" : "border-border bg-surface text-ink-muted")}>
           전체
@@ -60,7 +61,7 @@ export default async function MapPage({ searchParams }: PageProps<"/map">) {
             {formatDate(c.date)} · {c.places.length}곳
           </Link>
         ))}
-      </nav>
+      </ScrollCurrentIntoView>
 
       <MapView pins={pins} line={line} ariaLabel={course ? `${formatDate(course.date)} 코스 지도` : "전체 장소 지도"} />
 

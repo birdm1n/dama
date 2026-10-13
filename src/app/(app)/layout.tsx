@@ -4,12 +4,12 @@ import { Logo } from "@/components/layout/logo";
 import { BottomNav, TopNav } from "@/components/layout/app-nav";
 import { signOut } from "@/features/auth/actions";
 import { getMyProfile } from "@/features/couple/queries";
-import { getUserId } from "@/lib/supabase/server";
+import { getIsAdmin, getUserId } from "@/lib/supabase/server";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
   const userId = await getUserId();
   if (!userId) redirect("/login");
-  const profile = await getMyProfile(userId);
+  const [profile, isAdmin] = await Promise.all([getMyProfile(userId), getIsAdmin()]);
 
   return (
     <div className="min-h-dvh pb-24 md:pb-10">
@@ -18,6 +18,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           <Logo href="/home" />
           <TopNav />
           <div className="flex items-center gap-2">
+            {isAdmin && (
+              <a href="/admin/reports" className="rounded-full border border-border px-2.5 py-1 text-xs text-ink-muted hover:text-ink">운영</a>
+            )}
             <span className="hidden text-sm text-ink-muted sm:inline">{profile?.display_name}</span>
             <form action={signOut}>
               <button

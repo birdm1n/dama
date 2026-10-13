@@ -10,7 +10,7 @@ import { randomUUID } from "node:crypto";
  * 셋업(사용자 생성, 시간 조작)은 슈퍼유저로 한다.
  */
 
-export type TestUser = { id: string; email: string; name: string };
+export type TestUser = { id: string; email: string; name: string; admin?: boolean };
 
 export class Db {
   constructor(private client: Client) {}
@@ -55,7 +55,12 @@ export class Db {
         await this.client.query("set local role anon");
       } else {
         await this.client.query("select set_config('request.jwt.claims', $1, true)", [
-          JSON.stringify({ sub: user.id, role: "authenticated", email: user.email }),
+          JSON.stringify({
+            sub: user.id,
+            role: "authenticated",
+            email: user.email,
+            app_metadata: user.admin ? { role: "admin" } : {},
+          }),
         ]);
         await this.client.query("set local role authenticated");
       }

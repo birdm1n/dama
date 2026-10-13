@@ -182,3 +182,27 @@ export async function deletePost(formData: FormData) {
   revalidatePath("/discover");
   redirect("/discover/mine?deleted=1");
 }
+
+export async function updatePost(_prev: FormState, formData: FormData): Promise<FormState> {
+  const postId = String(formData.get("postId") ?? "");
+  const title = String(formData.get("title") ?? "").trim();
+  const body = String(formData.get("body") ?? "").replace(/\r\n/g, "\n").trimEnd();
+  const area = String(formData.get("area") ?? "").trim();
+  if (!title || title.length > 80) return { fieldErrors: { title: ["제목은 1~80자로 입력해 주세요."] } };
+  if (body.length > 3000) return { fieldErrors: { body: ["내용은 3000자 이하로 입력해 주세요."] } };
+  if (area.length > 40) return { fieldErrors: { area: ["지역은 40자 이하로 입력해 주세요."] } };
+  const { tags, error: tagError } = parseTags(String(formData.get("tags") ?? ""));
+  if (tagError) return { fieldErrors: { tags: [tagError] } };
+
+  const supabase = await createClient();
+  // RLS: 작성자만, 검토 대기·내려진 글은 수정 불가
+  const { data, error } = await supabase
+    .from("public_posts")
+    .update({ title, body, area: area || null, tags })
+    .eq("id", postId)
+    .select("id");
+  if (error || !data?.length) return { error: "수정하지 못했어요. 신고 검토 중이거나 내려진 글은 수정할 수 없어요." };
+  revalidatePath(`/discover/${postId}`);
+  revalidatePath("/discover");
+  redirect(`/discover/${postId}?edited=1`);
+}

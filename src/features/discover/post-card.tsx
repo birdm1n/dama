@@ -17,7 +17,7 @@ export function PostCard({ post }: { post: Post }) {
           {post.kind === "course" ? "코스" : "장소"}
           {post.area && ` · ${post.area}`}
           {post.status !== "published" && (
-            <span className="ml-auto rounded-full bg-beige px-2 py-0.5">{post.status === "hidden" ? "숨김" : "신고로 검토 중"}</span>
+            <span className="ml-auto rounded-full bg-beige px-2 py-0.5">{post.status === "hidden" ? "숨김" : post.status === "removed" ? "운영 정책으로 내려짐" : "신고로 검토 중"}</span>
           )}
         </p>
         <h3 className="mt-1 font-display text-[17px] leading-snug">{post.title}</h3>

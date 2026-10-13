@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient, getUserId } from "@/lib/supabase/server";
 import { photoStoragePaths, savePhotosSchema, type SavePhotosInput } from "./schema";
 
@@ -102,4 +103,30 @@ export async function discardUploads(paths: string[]) {
   if (!userId) return;
   const own = paths.filter((p) => p.split("/")[1] === userId).slice(0, 60);
   if (own.length) await removeFiles(own);
+}
+
+/** 사진함의 (기록에 안 붙은) 내 사진을 내 기록에 붙인다. 기록 소유·커플은 RLS(photos_update)가 확인한다. */
+export async function attachPhotos(
+  _prev: { error?: string; message?: string },
+  formData: FormData,
+): Promise<{ error?: string; message?: string }> {
+  const memoryId = String(formData.get("memoryId") ?? "");
+  const ids = formData.getAll("photoId").map(String).filter((s) => /^[0-9a-f-]{36}$/i.test(s)).slice(0, 60);
+  if (!ids.length) return { error: "붙일 사진을 골라 주세요." };
+  const userId = await getUserId();
+  if (!userId) return { error: "로그인이 필요해요." };
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("photos")
+    .update({ memory_id: memoryId })
+    .in("id", ids)
+    .eq("uploader_id", userId)
+    .is("memory_id", null)
+    .select("id");
+  if (error) return { error: "사진을 붙이지 못했어요. 내가 쓴 기록에만 붙일 수 있어요." };
+  revalidatePath(`/memories/${memoryId}`);
+  revalidatePath("/photos");
+  revalidatePath("/memories");
+  // 붙인 사진은 목록에서 사라지므로 결과는 기록 화면에서 보여 준다
+  redirect(`/memories/${memoryId}?attached=${data?.length ?? 0}`);
 }

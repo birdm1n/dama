@@ -47,7 +47,7 @@ const fmtTime = (iso: string) =>
 function errorText(e: unknown) {
   if (e instanceof UnsupportedImageError) {
     if (e.message === "too-large") return "파일이 너무 커요(40MB 초과).";
-    if (e.message === "decode") return "이 브라우저에서 열 수 없는 형식이에요(예: 일부 HEIC). JPEG로 내보낸 뒤 다시 올려 주세요.";
+    if (e.message === "decode") return "이 사진 형식을 열 수 없어요. JPEG로 내보낸 뒤 다시 올려 주세요.";
   }
   return "사진을 처리하지 못했어요.";
 }

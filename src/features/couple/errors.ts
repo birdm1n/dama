@@ -13,6 +13,9 @@ const MESSAGES: Record<string, string> = {
   TOO_MANY_PLACES: "한 기록에는 장소를 20개까지 넣을 수 있어요.",
   POST_RATE_LIMITED: "오늘은 공개 게시물을 더 올릴 수 없어요(하루 10개). 내일 다시 시도해 주세요.",
   REPORT_RATE_LIMITED: "오늘 신고 횟수를 넘었어요. 내일 다시 시도해 주세요.",
+  NOT_ADMIN: "운영자만 할 수 있어요.",
+  INVALID_DECISION: "처리 방법을 확인해 주세요.",
+  POST_NOT_FOUND: "글을 찾을 수 없어요.",
   INVITE_OWN: "내가 만든 초대 링크는 직접 수락할 수 없어요. 상대에게 링크를 보내 주세요.",
 };
 
