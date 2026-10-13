@@ -44,6 +44,7 @@
 - 적용 직후 확인: public 테이블 14개 모두 RLS, anon 테이블 권한·함수 실행 0, 버킷 2개 모두 비공개, SECURITY DEFINER 전부 `search_path` 고정, pg_cron 작업(`purge-dissolved-couples`) 등록.
 - 보안 점검(advisor): 경고 8건 = 검토된 권한 우회 RPC 8개(로그인 사용자가 호출하는 게 의도). 그 외 없음.
 - 성능 점검: FK 인덱스 누락 5건 → 0009로 추가. "사용 안 된 인덱스"는 데이터가 없어서 나온 것. 운영자 정책이 SELECT 정책과 OR로 합쳐지는 경고 2건은 의도.
+- 원격 격리 확인(트랜잭션 안에서 실행 후 롤백, 흔적 없음): 커플 A의 상대 B는 공유 기록만 보고 초안은 못 봄. 다른 커플 C는 A 커플의 기록·커플·프로필을 0건 조회, A 커플에 기록 삽입은 RLS 거부, 전체 UPDATE는 0행, 사용된 초대 재사용은 `INVITE_USED`. 권한 점검: anon은 public 테이블 권한·private 스키마 접근 없음, `claim_storage_deletions`는 service_role만, `token_hash`·`avatar_path`·`author_id`·`like_count` 쓰기/읽기 불가.
 - 마이그레이션 이력: MCP로 적용해 원격 버전 번호가 로컬 파일명과 다르고, 0007은 `moderation` + `moderation_status_removed` 두 개로 나뉘어 있다(내용은 같음). 나중에 `supabase db push`를 쓰려면 먼저 `supabase migration repair`로 이력을 로컬 버전에 맞춘다.
 
 ## 운영 설정 체크리스트 (Supabase 대시보드)
