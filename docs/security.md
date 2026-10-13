@@ -16,6 +16,7 @@
 
 | 문제 | 영향 | 조치 |
 |---|---|---|
+| OpenNext가 `.env.local`을 워커 번들에 넣음 | 로컬 service_role 키·CRON_SECRET이 배포본에 포함, 워커 비밀값을 빠뜨리면 로컬 값이 조용히 쓰임 | 빌드 후 `scripts/sanitize-next-env.mjs`가 `NEXT_PUBLIC_*`만 남김. 배포 빌드가 로컬 Supabase를 가리키면 중단 |
 | CSP 없음 | Supabase 세션 쿠키는 브라우저 클라이언트가 읽어야 해서 httpOnly가 아니다. XSS 한 번이면 토큰 유출 | nonce 기반 CSP(`src/lib/security/csp.ts`, proxy에서 적용). 스크립트는 nonce+`strict-dynamic`, 데이터 전송은 self·Supabase·지도 서버로 제한, `frame-ancestors 'none'`, HTTPS면 HSTS·`upgrade-insecure-requests` |
 | HEIC 디코더가 `eval` 사용 | 페이지에 `unsafe-eval`을 허용하면 CSP가 크게 약해짐 | 디코더를 전용 워커(`/vendor/heic/heic-worker.mjs`)로 격리하고 그 경로에만 별도 CSP(eval 허용·네트워크 차단). 워커는 DOM·쿠키 접근 불가 |
 | zod의 `Function("")` 탐지 | 매 페이지 CSP 위반 보고(실제 공격 탐지를 가림) | `z.config({ jitless: true })` (`src/lib/zod.ts`) |
@@ -62,7 +63,7 @@
 1. ~~회원 탈퇴 없음~~ → **구현함**(아래 "회원 탈퇴").
 2. ~~비밀번호 재설정 없음~~ → **구현함**(브라우저에서 호출, 계정 존재 비노출).
 3. **토큰 갱신의 IP 한도** — proxy에서 세션을 갱신하므로 Supabase는 워커 IP를 본다. 기본 한도(5분 150회/IP)를 넘으면 일부 사용자의 세션이 풀린다. 대시보드에서 한도를 올리고 지켜봐야 한다.
-4. **초대 토큰이 URL 경로에 있다** — Cloudflare 요청 로그에 남는다(24시간·1회용, 해시만 DB 저장, Referer는 차단). 로그 접근 권한이 있는 사람이 먼저 수락할 수 있는 이론적 위험. 줄이려면 토큰을 `#fragment`로 옮기고 브라우저에서 수락하도록 바꾼다.
+4. ~~초대 토큰이 URL 경로에 있다~~ → **고침**: 링크가 `/invite#토큰`. fragment는 서버로 전송되지 않아 요청 로그·Referer에 남지 않는다. 브라우저가 토큰을 읽어 서버 액션 본문(POST)으로만 보내고 주소창에서 지운다. 로그인·가입·메일 인증 동안은 같은 브라우저 localStorage에 24시간 만료로 보관, 수락·무효 시 삭제. E2E가 "어떤 요청 URL에도 토큰이 없음"을 검사한다.
 5. **이미 발급된 서명 URL** — 숨김·차단·공유 해제 후에도 최대 10분은 열린다(취소 불가).
 6. **업로드 파일 내용 검증** — 비공개 사진은 MIME(WebP)과 크기만 Storage가 확인한다. 사진은 커플 둘만 보고 다른 도메인(Supabase)에서 서빙되어 위험은 낮다. 공개 이미지는 서버에서 WebP 구조를 파싱해 검증한다.
 7. **Node 미들웨어(proxy)** — OpenNext가 Cloudflare에서 "실험적"으로 표시. 로컬 workerd E2E는 통과.

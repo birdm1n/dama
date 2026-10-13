@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getUserId } from "@/lib/supabase/server";
+import { getInvitePreview, getMyCouple } from "./queries";
 import { coupleSchema, fieldErrorsOf, type FormState } from "@/features/auth/schema";
 import { coupleErrorMessage } from "./errors";
 
@@ -44,6 +45,16 @@ export async function revokeInvite(formData: FormData) {
   const supabase = await createClient();
   await supabase.rpc("revoke_invite", { p_invite_id: id });
   revalidatePath("/couple");
+}
+
+/** 초대 화면용. 토큰은 POST 본문으로만 받는다(URL·로그에 남지 않게). */
+export async function loadInvite(token: string) {
+  const userId = await getUserId();
+  if (!userId || typeof token !== "string" || token.length > 200) {
+    return { preview: { status: "invalid" as const, inviterName: null, coupleName: null, expiresAt: null }, hasCouple: false };
+  }
+  const [preview, myCouple] = await Promise.all([getInvitePreview(token), getMyCouple(userId)]);
+  return { preview, hasCouple: Boolean(myCouple) };
 }
 
 export async function acceptInvite(_prev: FormState, formData: FormData): Promise<FormState> {

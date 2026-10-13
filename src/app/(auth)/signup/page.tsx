@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { InviteTokenStash } from "@/features/couple/invite-gate";
 import { safeNextPath } from "@/lib/safe-redirect";
 import { SignUpForm } from "./signup-form";
 
@@ -13,6 +14,7 @@ export default async function SignUpPage({ searchParams }: PageProps<"/signup">)
       <p className="mb-8 mt-2 text-sm leading-relaxed text-ink-muted">
         가입 후 커플 공간을 만들고 상대를 초대할 수 있어요. 기록은 두 사람만 볼 수 있고, 공개는 항상 직접 선택할 때만 돼요.
       </p>
+      {next === "/invite" && <InviteTokenStash />}
       <SignUpForm next={next} />
       <p className="mt-6 text-center text-sm text-ink-muted">
         이미 계정이 있나요?{" "}

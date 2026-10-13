@@ -17,6 +17,8 @@ test("비밀번호 재설정: 계정 존재를 드러내지 않고, 메일 링�
   const page = await ctx.newPage();
   await page.goto("/login");
   await page.getByRole("link", { name: "비밀번호를 잊었어요" }).click();
+  // 로그인 화면에도 "이메일" 칸이 있어서, 이동이 끝나기 전에 입력하면 이전 화면에 들어간다
+  await expect(page).toHaveURL(/\/forgot-password$/);
   // 없는 이메일도 같은 안내
   await page.getByLabel("이메일").fill(`nobody-${Date.now()}@example.test`);
   await page.getByRole("button", { name: "재설정 링크 받기" }).click();

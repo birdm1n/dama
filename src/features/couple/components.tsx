@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { FieldError, FormMessage, Input, Label } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 import type { FormState } from "@/features/auth/schema";
+import { invitePath } from "./invite-token";
 import { acceptInvite, createCouple, createInvite, leaveCouple, updateCouple, type InviteState } from "./actions";
 
 export function CreateCoupleForm() {
@@ -31,7 +32,7 @@ export function CreateCoupleForm() {
 export function InvitePanel({ hasPending, pendingExpiresLabel }: { hasPending: boolean; pendingExpiresLabel?: string }) {
   const [state, action] = useActionState<InviteState>(createInvite, {});
   const [copied, setCopied] = useState(false);
-  const link = state.token && typeof window !== "undefined" ? `${window.location.origin}/invite/${state.token}` : null;
+  const link = state.token && typeof window !== "undefined" ? `${window.location.origin}${invitePath(state.token)}` : null;
 
   async function copy() {
     if (!link) return;
@@ -88,10 +89,10 @@ export function InvitePanel({ hasPending, pendingExpiresLabel }: { hasPending: b
   );
 }
 
-export function AcceptInviteForm({ token }: { token: string }) {
+export function AcceptInviteForm({ token, onSubmit }: { token: string; onSubmit?: () => void }) {
   const [state, action] = useActionState<FormState, FormData>(acceptInvite, {});
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} onSubmit={onSubmit} className="space-y-4">
       <input type="hidden" name="token" value={token} />
       <FormMessage error={state.error} />
       <SubmitButton size="lg" className="w-full" pendingText="연결 중…">초대 수락하고 연결하기</SubmitButton>

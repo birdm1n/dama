@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
-import { newUser, signUpAndConfirm } from "./helpers";
+import { newUser, requestLog, signUpAndConfirm } from "./helpers";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_KEY =
@@ -9,8 +9,9 @@ const SUPABASE_KEY =
 test("로그인하지 않으면 보호된 페이지에서 로그인으로 보내고, 돌아올 경로를 기억한다", async ({ page }) => {
   await page.goto("/couple");
   await expect(page).toHaveURL(/\/login\?next=%2Fcouple/);
-  await page.goto("/invite/some-token");
-  await expect(page).toHaveURL(/\/login\?next=%2Finvite%2Fsome-token/);
+  // 초대 토큰은 #fragment라 서버로 가지 않는다: 돌아올 경로는 /invite, 토큰은 주소창에서 지워진다
+  await page.goto("/invite#some-token-aaaaaaaaaaaaaaaaaaaa");
+  await expect(page).toHaveURL(/\/login\?next=%2Finvite$/);
   await expect(page.getByText("초대를 수락하려면 먼저 로그인해 주세요.")).toBeVisible();
 });
 
@@ -32,14 +33,19 @@ test("두 계정이 초대 링크로 커플이 되고, 제3자는 그 데이터�
   await a.getByRole("button", { name: "초대 링크 만들기" }).click();
   const linkText = await a.locator("p.font-mono").innerText();
   const inviteUrl = new URL(linkText.trim());
-  expect(inviteUrl.pathname).toMatch(/^\/invite\/[A-Za-z0-9_-]{43}$/);
+  expect(inviteUrl.pathname).toBe("/invite");
+  expect(inviteUrl.hash).toMatch(/^#[A-Za-z0-9_-]{43}$/);
+  const token = inviteUrl.hash.slice(1);
+  const invitePath = inviteUrl.pathname + inviteUrl.hash;
 
   // 3) B는 초대 링크로 들어와 가입 → 인증 후 초대 페이지로 돌아와 수락
-  const b = await signUpAndConfirm(browser, ben, inviteUrl.pathname);
-  await expect(b).toHaveURL(inviteUrl.pathname);
+  const b = await signUpAndConfirm(browser, ben, invitePath);
+  await expect(b).toHaveURL(/\/invite$/);
   await expect(b.getByRole("heading", { name: /Ana님이/ })).toBeVisible();
   await b.getByRole("button", { name: "초대 수락하고 연결하기" }).click();
   await expect(b.getByText("Ana님과 연결됐어요!")).toBeVisible();
+  // 토큰은 서버로 가는 어떤 요청 URL에도 실리지 않는다(요청 로그·Referer에 남지 않음). 브라우저가 기록하는 URL에는 fragment가 있으므로 그것만 제외
+  expect(requestLog(b).filter((u) => u.split("#")[0].includes(token))).toEqual([]);
   const members = b.getByRole("list").filter({ hasText: "(나)" });
   await expect(members).toContainText("Ana");
   await expect(members).toContainText("Ben");
@@ -51,7 +57,7 @@ test("두 계정이 초대 링크로 커플이 되고, 제3자는 그 데이터�
 
   // 5) 사용된 링크로 C는 들어올 수 없다
   const c = await signUpAndConfirm(browser, cy);
-  await c.goto(inviteUrl.pathname);
+  await c.goto(invitePath);
   await expect(c.getByRole("heading", { name: "이미 사용된 링크예요" })).toBeVisible();
   await c.goto("/couple");
   await expect(c.getByRole("heading", { name: "커플 공간 만들기" })).toBeVisible();

@@ -27,11 +27,28 @@ export async function confirmationLink(email: string): Promise<string> {
   throw new Error(`인증 메일을 찾지 못함: ${email}`);
 }
 
+const requestLogs = new WeakMap<Page, string[]>();
+/** signUpAndConfirm으로 만든 페이지(컨텍스트)가 보낸 모든 요청 URL */
+export function requestLog(page: Page): string[] {
+  return requestLogs.get(page) ?? [];
+}
+
 /** 회원가입 → 메일 인증 → 로그인된 상태의 페이지 반환 */
 export async function signUpAndConfirm(browser: Browser, user: E2EUser, next?: string): Promise<Page> {
   const context = await browser.newContext();
   const page = await context.newPage();
-  await page.goto(next ? `/signup?next=${encodeURIComponent(next)}` : "/signup");
+  const urls: string[] = [];
+  context.on("request", (r) => urls.push(r.url()));
+  requestLogs.set(page, urls);
+  if (next?.startsWith("/invite#")) {
+    // 실제 흐름: 초대 링크를 열면 로그인 화면으로 가고(토큰은 #fragment로 보관), 거기서 회원가입으로 이동
+    await page.goto(next);
+    await expect(page).toHaveURL(/\/login\?next=%2Finvite$/);
+    await page.getByRole("link", { name: "회원가입" }).click();
+    await expect(page).toHaveURL(/\/signup\?next=%2Finvite$/);
+  } else {
+    await page.goto(next ? `/signup?next=${encodeURIComponent(next)}` : "/signup");
+  }
   await page.getByLabel("이름").fill(user.name);
   await page.getByLabel("이메일").fill(user.email);
   await page.getByLabel("비밀번호").fill(user.password);
@@ -51,7 +68,8 @@ export async function pairedCouple(browser: Browser, names: [string, string] = [
   await a.goto("/couple");
   await a.getByRole("button", { name: "커플 공간 만들기" }).click();
   await a.getByRole("button", { name: "초대 링크 만들기" }).click();
-  const invitePath = new URL((await a.locator("p.font-mono").innerText()).trim()).pathname;
+  const inviteUrl = new URL((await a.locator("p.font-mono").innerText()).trim());
+  const invitePath = inviteUrl.pathname + inviteUrl.hash;
   const b = await signUpAndConfirm(browser, ub, invitePath);
   await b.getByRole("button", { name: "초대 수락하고 연결하기" }).click();
   await expect(b.getByText(/연결됐어요!/)).toBeVisible();
