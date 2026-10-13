@@ -60,6 +60,7 @@ Pinterest 감성의 따뜻한 에디토리얼. 폴라로이드·스크랩북 카
 ## 배포·도구
 - Cloudflare Workers(`@opennextjs/cloudflare`, `wrangler.jsonc`, 진입점 `worker.ts` — 크론이 파일 정리 라우트를 호출). `npm run cf:preview`로 로컬 workerd 실행.
 - `patches/@opennextjs+cloudflare+1.20.7.patch`(Next 16.4 `preview-props.json` 누락 수정)를 `patch-package`가 적용한다. OpenNext 버전을 올릴 때 패치가 아직 필요한지 확인.
+- OpenNext는 `.env.local` 등을 워커 번들(`next-env.mjs`)에 넣는다 → `scripts/sanitize-next-env.mjs`가 빌드 후 `NEXT_PUBLIC_*`만 남긴다(cf:build·cf:deploy에 연결). 배포는 원격 Supabase 주소를 환경 변수로 주고 `npm run cf:deploy`(로컬 주소면 중단). 서버 비밀값은 `wrangler secret put`으로만. 배포 주소: `https://dama.dama-app.workers.dev`.
 - DB 타입: 마이그레이션을 바꾸면 `npm run gen:types`(로컬 Supabase 필요)로 `src/lib/supabase/database.types.ts`를 다시 만든다. Supabase 클라이언트는 이 타입으로 검사된다.
 
 ## 보안 규칙 (점검 결과는 `docs/security.md`)

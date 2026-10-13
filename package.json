@@ -16,9 +16,9 @@
     "predev": "node scripts/copy-vendor.mjs",
     "prebuild": "node scripts/copy-vendor.mjs",
     "gen:types": "supabase gen types typescript --local --schema public > src/lib/supabase/database.types.ts",
-    "cf:build": "opennextjs-cloudflare build",
-    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy"
+    "cf:build": "opennextjs-cloudflare build && node scripts/sanitize-next-env.mjs",
+    "cf:preview": "npm run cf:build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && node scripts/sanitize-next-env.mjs --deploy && opennextjs-cloudflare deploy"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.7",
