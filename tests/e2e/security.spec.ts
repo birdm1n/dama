@@ -99,3 +99,13 @@ test("인증: 계정 존재 여부를 드러내지 않고, 로그인 후 외부 
   await page.waitForURL((url) => url.pathname === "/home");
   expect(new URL(page.url()).host).toBe(new URL(baseURL!).host); // 같은 사이트에 머문다
 });
+
+test("오픈소스 라이선스: 로그인 없이 보이고 LGPL 전문이 함께 배포된다", async ({ page, request }) => {
+  await page.goto("/login");
+  await page.getByRole("link", { name: "오픈소스 라이선스" }).click();
+  await expect(page).toHaveURL(/\/licenses$/);
+  await expect(page.getByRole("heading", { name: /heic-to.*LGPL-3\.0/ })).toBeVisible();
+  const res = await request.get("/vendor/heic/LICENSE.txt");
+  expect(res.status()).toBe(200);
+  expect(await res.text()).toContain("GNU Lesser General Public License");
+});

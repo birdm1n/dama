@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 import { Download } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
@@ -46,6 +47,9 @@ export default async function SettingsPage() {
           <CardDescription className="mb-4">탈퇴하면 내 데이터가 바로 삭제되고 되돌릴 수 없어요.</CardDescription>
           <DeleteAccountForm inCouple={Boolean(couple)} partnerName={partner?.displayName ?? null} />
         </Card>
+        <p className="text-center text-xs">
+          <Link href="/licenses" className="text-ink-muted underline underline-offset-4">오픈소스 라이선스</Link>
+        </p>
       </div>
     </>
   );

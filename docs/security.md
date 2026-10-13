@@ -67,4 +67,5 @@
 5. **이미 발급된 서명 URL** — 숨김·차단·공유 해제 후에도 최대 10분은 열린다(취소 불가).
 6. **업로드 파일 내용 검증** — 비공개 사진은 MIME(WebP)과 크기만 Storage가 확인한다. 사진은 커플 둘만 보고 다른 도메인(Supabase)에서 서빙되어 위험은 낮다. 공개 이미지는 서버에서 WebP 구조를 파싱해 검증한다.
 7. **Node 미들웨어(proxy)** — OpenNext가 Cloudflare에서 "실험적"으로 표시. 로컬 workerd E2E는 통과.
-8. **`npm audit`** — `braces`(ESLint 설정·patch-package, 개발 도구만). 배포 번들에 없음.
+8. ~~LGPL 고지~~ → `/licenses` 화면(로그인·설정에서 링크)과 `/vendor/heic/LICENSE.txt`로 고지. heic-to는 분리된 파일이라 교체 가능.
+9. **`npm audit`** — `braces`(ESLint 설정·patch-package, 개발 도구만). 배포 번들에 없음.

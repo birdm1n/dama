@@ -58,7 +58,7 @@ npm run dev                 # http://127.0.0.1:3000
 배포 전 점검 결과·운영 설정 체크리스트·남은 위험은 [`docs/security.md`](docs/security.md).
 
 ## 서드파티 라이선스
-- `heic-to`(libheif)는 **LGPL-3.0**이다. 앱 번들과 분리된 파일로 지연 로드되어 교체 가능하다. 배포 전에 라이선스 고지 방식을 확인할 것.
+- `heic-to`(libheif)는 **LGPL-3.0**이다. 앱 번들과 분리된 파일로 지연 로드되어 교체 가능하다. 고지는 `/licenses` 화면과 `/vendor/heic/LICENSE.txt`.
 - MapLibre GL JS(BSD-3), exifr(MIT), 지도 타일 OpenFreeMap/OpenStreetMap(ODbL, 지도에 출처 표시).
 
 ## 정기 작업

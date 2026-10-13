@@ -18,5 +18,7 @@ const heic = join(root, "public", "vendor", "heic");
 mkdirSync(heic, { recursive: true });
 copyFileSync(require.resolve("heic-to/next"), join(heic, "heic-to.js"));
 copyFileSync(join(root, "scripts", "vendor", "heic-worker.mjs"), join(heic, "heic-worker.mjs"));
+// LGPL-3.0 고지: 라이선스 원문을 함께 배포한다(/licenses 화면에서 링크)
+copyFileSync(join(root, "node_modules", "heic-to", "LICENSE"), join(heic, "LICENSE.txt"));
 
 console.log("vendor → public/vendor (maplibre, heic)");
