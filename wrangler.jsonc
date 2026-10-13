@@ -11,7 +11,12 @@
     "binding": "ASSETS"
   },
   "observability": { "enabled": true },
-  // 버전별 미리보기 URL은 쓰지 않는다(배포 주소 하나만 공개)
+  // 대표 주소. www는 worker.ts에서 dama.me.kr로 301 이동한다
+  "routes": [
+    { "pattern": "dama.me.kr", "custom_domain": true },
+    { "pattern": "www.dama.me.kr", "custom_domain": true }
+  ],
+  // workers.dev 주소는 이전 기간 동안만 유지한다. 버전별 미리보기 URL은 쓰지 않는다
   "workers_dev": true,
   "preview_urls": false,
   // 삭제된 사진·공개 글 이미지 파일 정리 (매시 17분)

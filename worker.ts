@@ -10,8 +10,18 @@ import { default as handler } from "./.open-next/worker.js";
 
 type Env = { CRON_SECRET?: string };
 
+// www로 들어오면 대표 주소로 보낸다(로그인 쿠키·Supabase 리디렉트 주소를 한 출처로 유지)
+const CANONICAL_HOST = "dama.me.kr";
+
 const worker = {
-  fetch: handler.fetch,
+  fetch(req: Request, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) {
+    const url = new URL(req.url);
+    if (url.hostname === `www.${CANONICAL_HOST}`) {
+      url.hostname = CANONICAL_HOST;
+      return Response.redirect(url.toString(), 301);
+    }
+    return handler.fetch(req, env, ctx);
+  },
 
   async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) {
     if (!env.CRON_SECRET) {
