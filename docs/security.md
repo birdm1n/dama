@@ -39,6 +39,13 @@
 - `dangerouslySetInnerHTML`·`eval` 사용 없음. 사용자 입력은 React가 이스케이프.
 - 저장된 사진은 브라우저 재인코딩으로 EXIF 없음, 공개 이미지는 서버에서 메타데이터 청크를 한 번 더 제거.
 
+## 원격 프로젝트 (2026-10-13 적용)
+- Supabase 프로젝트 `dama`(ref `vxagkezfynlgmgcqyrtg`, 서울, Free 요금제). 마이그레이션 0001~0009 적용, seed 미적용.
+- 적용 직후 확인: public 테이블 14개 모두 RLS, anon 테이블 권한·함수 실행 0, 버킷 2개 모두 비공개, SECURITY DEFINER 전부 `search_path` 고정, pg_cron 작업(`purge-dissolved-couples`) 등록.
+- 보안 점검(advisor): 경고 8건 = 검토된 권한 우회 RPC 8개(로그인 사용자가 호출하는 게 의도). 그 외 없음.
+- 성능 점검: FK 인덱스 누락 5건 → 0009로 추가. "사용 안 된 인덱스"는 데이터가 없어서 나온 것. 운영자 정책이 SELECT 정책과 OR로 합쳐지는 경고 2건은 의도.
+- 마이그레이션 이력: MCP로 적용해 원격 버전 번호가 로컬 파일명과 다르고, 0007은 `moderation` + `moderation_status_removed` 두 개로 나뉘어 있다(내용은 같음). 나중에 `supabase db push`를 쓰려면 먼저 `supabase migration repair`로 이력을 로컬 버전에 맞춘다.
+
 ## 운영 설정 체크리스트 (Supabase 대시보드)
 - [ ] Auth → URL: Site URL·Redirect URLs를 배포 도메인으로(와일드카드는 자기 도메인만)
 - [ ] Auth → 이메일 인증 켜기, 커스텀 SMTP
