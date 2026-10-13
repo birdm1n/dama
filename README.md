@@ -12,7 +12,7 @@
 
 ### 브라우저 한계 (정직하게)
 - 새로 찍은 사진을 자동으로 감지할 수 없다. 사용자가 직접 고른다.
-- 일부 브라우저는 HEIC를 열지 못한다. 그 경우 JPEG로 내보내 달라고 안내한다.
+- 브라우저가 HEIC를 직접 열지 못하면 libheif(WebAssembly, `heic-to`)로 변환한다. 약 3MB라 HEIC를 만났을 때만 불러온다.
 - 주소·장소 검색은 없다. 지도에서 직접 고르거나 사진·현재 위치를 쓴다.
 - 지도 배경은 OpenFreeMap 타일을 브라우저가 직접 받는다. 타일 서버는 사용자가 보고 있는 지역을 알 수 있다(기록 내용은 전달되지 않는다). `NEXT_PUBLIC_MAP_STYLE_URL`로 다른 제공처로 바꿀 수 있다.
 - WebGL을 지원하지 않는 브라우저에서는 지도 대신 장소 목록만 보인다. 전체 스키마 설계는 [`docs/schema.md`](docs/schema.md).
@@ -44,8 +44,18 @@ npm run dev                 # http://127.0.0.1:3000
 `npm run test:db`는 `DATABASE_URL`이 없으면 임시 Postgres 클러스터를 띄워 Supabase 흉내(`tests/db/supabase-shim.sql`)와 마이그레이션을 적용해 테스트한다.
 실제 Supabase DB로 돌리려면: `DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres npm run test:db`
 
-## 운영 (아직 화면 없음)
-- 신고가 3건 이상 쌓인 글은 자동으로 `under_review`가 되어 숨겨진다. 검토·복구·신고 처리 화면은 아직 없어서 운영자가 DB에서 직접 처리해야 한다(`post_reports.status`, `public_posts.status`).
+## 운영
+- 신고가 3건 이상 쌓인 글은 자동으로 `under_review`가 되어 숨겨진다.
+- 운영자는 `/admin/reports`에서 미처리 신고를 보고 **복구**(다시 공개, 신고 기각) 또는 **내리기**(`removed`)를 한다. 결정은 `private.moderation_log`에 남는다.
+- 운영자 지정: 사용자가 바꿀 수 없는 `app_metadata.role = 'admin'`. service_role로만 설정할 수 있다(설정 후 다시 로그인).
+  ```ts
+  await supabaseAdmin.auth.admin.updateUserById(userId, { app_metadata: { role: "admin" } })
+  ```
+  로컬에서는 Studio(http://127.0.0.1:54323) → Authentication에서도 바꿀 수 있다.
+
+## 서드파티 라이선스
+- `heic-to`(libheif)는 **LGPL-3.0**이다. 앱 번들과 분리된 파일로 지연 로드되어 교체 가능하다. 배포 전에 라이선스 고지 방식을 확인할 것.
+- MapLibre GL JS(BSD-3), exifr(MIT), 지도 타일 OpenFreeMap/OpenStreetMap(ODbL, 지도에 출처 표시).
 
 ## 정기 작업
 

@@ -89,7 +89,7 @@ memory_places
 
 ```
 public_posts        id, author_id, kind 'place'|'course', title, body, area, tags text[],
-                    status 'published'|'hidden'|'under_review', like_count, bookmark_count, created_at
+                    status 'published'|'hidden'|'under_review'|'removed', like_count, bookmark_count, created_at
 public_post_places  post_id, seq, name, lat, lng
 public_post_images  post_id, seq, storage_path ({post_id}/{uuid}.webp, post-images 버킷), width, height
 post_likes          (post_id, user_id)
@@ -100,7 +100,7 @@ user_blocks         (blocker_id, blocked_id)
 
 - **사본**: 공개 글은 개인 기록을 참조하지 않는다(원본 id도 저장하지 않음). 기록을 지워도 공개 글은 남고, 공개 글을 지워도 기록은 그대로다. `couple_id`가 없다.
 - **명시적 선택**: 공개 화면은 제목·소개가 비어 있고 사진·장소가 하나도 선택되지 않은 상태로 시작한다. 확인 체크를 해야 공개된다. 내가 쓴, 활성 커플의 기록에서만, 그 기록에 붙은 **내가 올린 사진**만 고를 수 있다.
-- **이미지**: 비공개 원본을 서버가 사용자 세션으로 읽어 WebP의 EXIF·XMP 청크를 한 번 더 제거한 뒤(`stripWebpMetadata`) 게시물 폴더에 복사한다. 버킷은 비공개, 서명 URL(1시간)로만 준다 → 숨김·삭제·차단된 글의 이미지는 새로 열 수 없다.
+- **이미지**: 비공개 원본을 서버가 사용자 세션으로 읽어 WebP의 EXIF·XMP 청크를 한 번 더 제거한 뒤(`stripWebpMetadata`) 게시물 폴더에 복사한다. 버킷은 비공개, 서명 URL(10분)로만 준다 → 숨김·삭제·차단된 글의 이미지는 새로 열 수 없다.
 - **익명**: 화면에 작성자 정보를 보여주지 않는다("익명의 커플"). 차단은 게시물 id로 요청하고 서버가 작성자를 찾는다.
 - RLS
   - 글: 로그인 사용자는 `published`이고 어느 쪽으로든 차단 관계가 없는 글을 본다. 작성자는 자기 글을 상태와 관계없이 본다. 작성자는 published↔hidden만 바꿀 수 있고, under_review는 다시 공개할 수 없다(삭제는 가능).
@@ -108,11 +108,12 @@ user_blocks         (blocker_id, blocked_id)
   - 신고: 남의 공개 글만, 같은 글은 한 번. **서로 다른 3명 이상 신고하면 자동으로 under_review**(숨김). 하루 신고 20회, 공개 글 하루 10개 제한.
 - 검색 `search_public_posts(q, kind, tag, limit, offset)` — SECURITY INVOKER(숨김·차단 자동 제외).
 - 발견은 로그인한 사용자만 볼 수 있다(익명 크롤링 방지).
+- **신고 검토**: 운영자(`app_metadata.role='admin'`, `private.is_admin()`)는 신고가 걸린 글·검토 대기·내려진 글과 신고 내용을 볼 수 있다(작성자가 직접 숨긴 글은 못 봄). `admin_report_queue()`로 대기열, `moderate_post(id, 'restore'|'remove', note)`로 처리하며 `private.moderation_log`에 기록된다. 운영자도 테이블을 직접 수정할 수는 없다. `removed` 글은 작성자만 보고 다시 공개·수정할 수 없다(삭제는 가능).
 
 ## Storage
 
 | 버킷 | 공개 | 쓰기 | 읽기 |
 |---|---|---|---|
-| `post-images` ✅ | ✗ (WebP만, 10MB) | 내 게시물 폴더(`{post_id}/…`)에만 | 볼 수 있는 `public_post_images` 행이 가리키는 파일만 + 서명 URL(1시간). 업로드 직후 15분은 작성자만 |
+| `post-images` ✅ | ✗ (WebP만, 10MB) | 내 게시물 폴더(`{post_id}/…`)에만 | 볼 수 있는 `public_post_images` 행이 가리키는 파일만 + 서명 URL(10분). 업로드 직후 15분은 작성자만 |
 | `couple-photos` ✅ | ✗ (WebP만, 10MB) | 본인 경로(`{내 활성 couple_id}/{auth.uid()}/…`)에만 | 볼 수 있는 `photos` 행이 가리키는 파일만 + 서명된 URL(1시간). 업로드 직후 15분간 행이 없을 때는 본인만 |
 | `public-posts` | ○ | 서버(EXIF 제거 처리 후)만 | 누구나 |
