@@ -10,7 +10,7 @@ import { default as handler } from "./.open-next/worker.js";
 
 type Env = { CRON_SECRET?: string };
 
-export default {
+const worker = {
   fetch: handler.fetch,
 
   async scheduled(_event: unknown, env: Env, ctx: { waitUntil(p: Promise<unknown>): void }) {
@@ -29,3 +29,5 @@ export default {
     );
   },
 };
+
+export default worker;

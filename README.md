@@ -53,6 +53,9 @@ npm run dev                 # http://127.0.0.1:3000
   ```
   로컬에서는 Studio(http://127.0.0.1:54323) → Authentication에서도 바꿀 수 있다.
 
+## 보안
+배포 전 점검 결과·운영 설정 체크리스트·남은 위험은 [`docs/security.md`](docs/security.md).
+
 ## 서드파티 라이선스
 - `heic-to`(libheif)는 **LGPL-3.0**이다. 앱 번들과 분리된 파일로 지연 로드되어 교체 가능하다. 배포 전에 라이선스 고지 방식을 확인할 것.
 - MapLibre GL JS(BSD-3), exifr(MIT), 지도 타일 OpenFreeMap/OpenStreetMap(ODbL, 지도에 출처 표시).
@@ -72,7 +75,7 @@ Cloudflare Workers에서 `@opennextjs/cloudflare`로 실행한다. 로컬에서 
    - Auth → URL Configuration: Site URL = 배포 주소, Redirect URLs에 `https://<도메인>/**` 추가.
    - Auth → 이메일 인증 켜기, SMTP 설정(기본 메일 발송은 개수 제한이 있다).
    - Database → Extensions에서 `pg_cron` 켜기(해제된 커플 30일 후 삭제 스케줄은 마이그레이션이 등록한다. 켜기 전에 마이그레이션을 적용했다면 `select cron.schedule('purge-dissolved-couples', '17 3 * * *', 'select private.purge_dissolved_couples()');`를 한 번 실행).
-2. **빌드 환경변수**(CI): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_SITE_URL`. `NEXT_PUBLIC_*`는 빌드할 때 코드에 들어가므로 **빌드 시점**에 있어야 한다.
+2. **빌드 환경변수**(CI): `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (지도 배경을 바꿀 때만 `NEXT_PUBLIC_MAP_STYLE_URL`). `NEXT_PUBLIC_*`는 빌드할 때 코드에 들어가므로 **빌드 시점**에 있어야 한다.
 3. **런타임 비밀값**(서버 전용, 커밋 금지):
    ```bash
    npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY   # 파일 정리 작업에만 사용

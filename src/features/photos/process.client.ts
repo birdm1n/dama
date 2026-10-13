@@ -50,16 +50,32 @@ async function encode(bitmap: ImageBitmap, maxEdge: number, quality: number) {
 
 /**
  * 브라우저가 직접 열지 못하는 HEIC(아이폰 사진)를 libheif(WebAssembly)로 해석한다.
- * 약 3MB라 HEIC를 만났을 때만 불러온다. (heic-to, LGPL-3.0 — 별도 파일로 로드)
+ * libheif 바인딩이 eval을 쓰므로 페이지가 아니라 전용 워커(/vendor/heic/heic-worker.mjs)에서만 실행한다.
+ * 그 워커에만 별도 CSP(eval 허용·네트워크 차단)가 적용되어, 페이지의 CSP는 eval 없이 유지된다.
+ * 약 3MB라 HEIC를 만났을 때만 불러온다. (heic-to, LGPL-3.0)
  */
-async function decodeHeic(file: File): Promise<ImageBitmap> {
-  try {
-    const { isHeic, heicTo } = await import("heic-to/next");
-    if (!(await isHeic(file))) throw new Error("not heic");
-    return await heicTo({ blob: file, type: "bitmap", options: { imageOrientation: "from-image" } });
-  } catch {
-    throw new UnsupportedImageError("decode");
-  }
+let heicWorker: Worker | null = null;
+let heicSeq = 0;
+
+function decodeHeic(file: File): Promise<ImageBitmap> {
+  heicWorker ??= new Worker("/vendor/heic/heic-worker.mjs", { type: "module" });
+  const worker = heicWorker;
+  const id = ++heicSeq;
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => done(new UnsupportedImageError("decode")), 60_000);
+    function done(result: ImageBitmap | Error) {
+      clearTimeout(timer);
+      worker.removeEventListener("message", onMessage);
+      if (result instanceof Error) reject(result);
+      else resolve(result);
+    }
+    function onMessage(e: MessageEvent<{ id: number; bitmap?: ImageBitmap; error?: string }>) {
+      if (e.data.id !== id) return;
+      done(e.data.bitmap ?? new UnsupportedImageError("decode"));
+    }
+    worker.addEventListener("message", onMessage);
+    worker.postMessage({ id, file });
+  });
 }
 
 export async function processPhoto(file: File): Promise<ProcessedPhoto> {

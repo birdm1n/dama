@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "@/lib/zod";
 
 export const TAG_MAX_COUNT = 10;
 export const TAG_MAX_LENGTH = 20;

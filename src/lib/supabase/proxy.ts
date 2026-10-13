@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { buildCsp, newNonce } from "@/lib/security/csp";
 import { getSupabaseEnv } from "./env";
 
 /** 로그인이 필요한 경로 접두사. 실제 권한 검증은 DB(RLS)와 서버 코드가 다시 한다. */
@@ -7,9 +8,31 @@ const PROTECTED_PREFIXES = ["/home", "/couple", "/memories", "/photos", "/map", 
 
 export async function updateSession(request: NextRequest) {
   const env = getSupabaseEnv();
-  if (!env) return NextResponse.next({ request });
 
-  let response = NextResponse.next({ request });
+  // 요청마다 새 nonce. Next.js가 렌더링 중 요청의 CSP 헤더에서 nonce를 읽어 자기 스크립트에 붙인다.
+  const nonce = newNonce();
+  const https = browserOrigin(request).startsWith("https://");
+  const csp = buildCsp({
+    nonce,
+    supabaseUrl: env?.url,
+    mapStyleUrl: process.env.NEXT_PUBLIC_MAP_STYLE_URL,
+    dev: process.env.NODE_ENV === "development",
+    https,
+  });
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("Content-Security-Policy", csp);
+
+  const finish = (res: NextResponse) => {
+    res.headers.set("Content-Security-Policy", csp);
+    if (https) res.headers.set("Strict-Transport-Security", "max-age=31536000");
+    return res;
+  };
+  const next = () => NextResponse.next({ request: { headers: requestHeaders } });
+
+  if (!env) return finish(next());
+
+  let response = next();
 
   const supabase = createServerClient(env.url, env.key, {
     cookies: {
@@ -17,8 +40,10 @@ export async function updateSession(request: NextRequest) {
         return request.cookies.getAll();
       },
       setAll(cookiesToSet, headers) {
+        // 갱신된 세션 쿠키를 이번 요청의 렌더링에도 전달
         cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-        response = NextResponse.next({ request });
+        requestHeaders.set("cookie", request.cookies.toString());
+        response = next();
         cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         Object.entries(headers ?? {}).forEach(([k, v]) => response.headers.set(k, v));
       },
@@ -35,10 +60,10 @@ export async function updateSession(request: NextRequest) {
       new URL(`/login?next=${encodeURIComponent(pathname + search)}`, browserOrigin(request)),
     );
     response.cookies.getAll().forEach((c) => redirect.cookies.set(c));
-    return redirect;
+    return finish(redirect);
   }
 
-  return response;
+  return finish(response);
 }
 
 /**

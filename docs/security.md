@@ -1,0 +1,56 @@
+# 보안·권한 점검 (배포 전)
+
+점검일: 2026-10-13. 로컬 Supabase 호환 스택(실제 GoTrue·PostgREST·Storage)과 Cloudflare 런타임(workerd)에서 확인했다.
+
+## 자동으로 지켜지는 것 (테스트)
+
+| 영역 | 확인 방법 |
+|---|---|
+| 커플 간 격리, 공유·초안, 보관, 발견·차단·신고, 운영 권한 | `tests/db/*.test.ts` (실제 Supabase 스키마에서도 실행) |
+| **DB 보안 불변식** — anon 권한 없음, anon이 public 함수 실행 불가, 모든 SECURITY DEFINER에 `search_path` 고정, 권한 우회 RPC는 검토된 8개뿐, 모든 public 테이블 RLS + `authenticated` 대상 + `using(true)` 없음, 버킷 비공개·WebP·10MB, private 스키마 비노출, 민감 컬럼(token_hash·author_id·couple_id·카운트 등) 쓰기 불가 | `tests/db/security-invariants.test.ts` — 새 마이그레이션이 규칙을 어기면 실패 |
+| 남용 방지 — 하루 사진 300장·기록 200개·공개 글 10개·신고 20회, 시간당 초대 10회 | DB 트리거 + 테스트 |
+| CSP — 요청별 nonce, 인라인 스크립트 전부 nonce, 404 포함, 주요 화면(가입·HEIC·사진·지도·발견)에서 위반 0 | `tests/e2e/security.spec.ts` (Node 서버·workerd 양쪽) |
+| 인증 — 계정 존재 여부 비노출(로그인·가입), 오픈 리다이렉트 차단 | `tests/e2e/security.spec.ts`, `tests/unit/safe-redirect.test.ts` |
+
+## 이번 점검에서 고친 것
+
+| 문제 | 영향 | 조치 |
+|---|---|---|
+| CSP 없음 | Supabase 세션 쿠키는 브라우저 클라이언트가 읽어야 해서 httpOnly가 아니다. XSS 한 번이면 토큰 유출 | nonce 기반 CSP(`src/lib/security/csp.ts`, proxy에서 적용). 스크립트는 nonce+`strict-dynamic`, 데이터 전송은 self·Supabase·지도 서버로 제한, `frame-ancestors 'none'`, HTTPS면 HSTS·`upgrade-insecure-requests` |
+| HEIC 디코더가 `eval` 사용 | 페이지에 `unsafe-eval`을 허용하면 CSP가 크게 약해짐 | 디코더를 전용 워커(`/vendor/heic/heic-worker.mjs`)로 격리하고 그 경로에만 별도 CSP(eval 허용·네트워크 차단). 워커는 DOM·쿠키 접근 불가 |
+| zod의 `Function("")` 탐지 | 매 페이지 CSP 위반 보고(실제 공격 탐지를 가림) | `z.config({ jitless: true })` (`src/lib/zod.ts`) |
+| **로그인·가입을 서버에서 호출** | Supabase Auth의 로그인·가입 제한은 IP 단위(기본 5분 30회). 워커 IP로 몰려 **전체 사용자가 로그인 불가**해질 수 있음 | 브라우저에서 직접 호출(`src/features/auth/client-auth.ts`) |
+| `profiles.avatar_path` 쓰기 가능 | 아바타 기능이 없는데 임의 경로 저장 가능(향후 서명 URL 경로 조작 위험) | 권한 회수(기능을 만들 때 경로 검증과 함께 다시 연다) |
+| 생성 개수 제한 없음 | 한 계정이 저장소·DB를 채울 수 있음 | 하루 사진 300장·기록 200개 제한 |
+| `X-Powered-By` 노출 | 프레임워크 정보 노출 | 끔 |
+| 비밀번호 변경 시 재인증 꺼짐 | 세션 탈취 시 비밀번호까지 바뀔 수 있음 | `secure_password_change = true` |
+
+## 검토했고 문제없음
+- service_role은 파일 정리 작업(`/api/cron/storage-cleanup`, 비밀값 16자 이상·상수 시간 비교) 한 곳에서만 쓴다.
+- 모든 서버 액션·라우트는 사용자 세션(RLS)으로 동작. 리다이렉트에 쓰는 id는 DB 갱신 성공 후의 값(uuid·RLS 통과).
+- 권한 우회 RPC 8개(초대·커플·운영): 호출자 검증, 행 잠금으로 동시 수락 경쟁 차단, 운영자 확인(`app_metadata`는 사용자가 못 바꿈).
+- 이메일 인증 콜백은 PKCE(같은 브라우저의 코드 검증 쿠키 필요) → 로그인 CSRF 불가.
+- 추적되는 파일에 비밀값 없음(`.env.local`, `.dev.vars` 무시). seed의 샘플 비밀번호는 로컬 `db reset`에서만 적용(`db push`는 seed를 실행하지 않음).
+- `dangerouslySetInnerHTML`·`eval` 사용 없음. 사용자 입력은 React가 이스케이프.
+- 저장된 사진은 브라우저 재인코딩으로 EXIF 없음, 공개 이미지는 서버에서 메타데이터 청크를 한 번 더 제거.
+
+## 운영 설정 체크리스트 (Supabase 대시보드)
+- [ ] Auth → URL: Site URL·Redirect URLs를 배포 도메인으로(와일드카드는 자기 도메인만)
+- [ ] Auth → 이메일 인증 켜기, 커스텀 SMTP
+- [ ] Auth → 비밀번호: 최소 8자 + 영문·숫자, **유출 비밀번호 차단(HIBP)** 켜기
+- [ ] Auth → 비밀번호 변경 시 재인증(secure password change) 켜기
+- [ ] Auth → Rate limits: **토큰 갱신(token refresh)** 한도를 사용자 수에 맞게 올리기 — 세션 갱신은 서버(워커)에서 일어나 IP 단위 한도를 나눠 쓴다(아래 참고)
+- [ ] Database → `pg_cron` 켜기(해제 커플 30일 후 삭제)
+- [ ] API 설정에서 노출 스키마가 `public`(필요하면 `graphql_public`)뿐인지 확인 — `private`이 노출되면 안 된다
+- [ ] 운영자 계정만 `app_metadata.role = 'admin'`
+- [ ] Cloudflare: `wrangler secret put SUPABASE_SERVICE_ROLE_KEY`, `CRON_SECRET`; 로그 보존 기간 확인
+
+## 남은 위험·미구현 (배포 판단 필요)
+1. **회원 탈퇴 없음** — 개인정보보호법상 탈퇴(개인정보 삭제) 수단을 제공해야 한다. 계정 삭제는 Auth Admin API(service_role)가 필요해 "service_role은 정리 작업에서만" 원칙에 예외가 생긴다. 구현 방식 결정 필요.
+2. **비밀번호 재설정 없음** — 비밀번호를 잊으면 계정을 복구할 수 없다.
+3. **토큰 갱신의 IP 한도** — proxy에서 세션을 갱신하므로 Supabase는 워커 IP를 본다. 기본 한도(5분 150회/IP)를 넘으면 일부 사용자의 세션이 풀린다. 대시보드에서 한도를 올리고 지켜봐야 한다.
+4. **초대 토큰이 URL 경로에 있다** — Cloudflare 요청 로그에 남는다(24시간·1회용, 해시만 DB 저장, Referer는 차단). 로그 접근 권한이 있는 사람이 먼저 수락할 수 있는 이론적 위험. 줄이려면 토큰을 `#fragment`로 옮기고 브라우저에서 수락하도록 바꾼다.
+5. **이미 발급된 서명 URL** — 숨김·차단·공유 해제 후에도 최대 10분은 열린다(취소 불가).
+6. **업로드 파일 내용 검증** — 비공개 사진은 MIME(WebP)과 크기만 Storage가 확인한다. 사진은 커플 둘만 보고 다른 도메인(Supabase)에서 서빙되어 위험은 낮다. 공개 이미지는 서버에서 WebP 구조를 파싱해 검증한다.
+7. **Node 미들웨어(proxy)** — OpenNext가 Cloudflare에서 "실험적"으로 표시. 로컬 workerd E2E는 통과.
+8. **`npm audit`** — `braces`(ESLint 설정·patch-package, 개발 도구만). 배포 번들에 없음.

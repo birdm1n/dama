@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { connection } from "next/server";
 import { Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
 import { site } from "@/config/site";
 import "./globals.css";
@@ -29,7 +30,9 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // CSP nonce는 요청 시점 렌더링에서만 붙는다. 모든 페이지(404 포함)를 동적으로 렌더링한다.
+  await connection();
   return (
     <html lang="ko" className={`${body.variable} ${display.variable} h-full antialiased`}>
       <body className="min-h-full">{children}</body>

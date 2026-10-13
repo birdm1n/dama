@@ -1,0 +1,6 @@
+# Cloudflare Workers 정적 자산용 헤더 (next.config.ts의 headers와 같은 규칙)
+/vendor/heic/*
+  Content-Security-Policy: default-src 'none'; script-src 'self' blob: 'unsafe-eval' 'wasm-unsafe-eval'; worker-src blob:; connect-src data: blob:
+  X-Content-Type-Options: nosniff
+/vendor/*
+  X-Content-Type-Options: nosniff

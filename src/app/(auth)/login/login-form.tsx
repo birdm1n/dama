@@ -1,13 +1,22 @@
 "use client";
 
 import { useActionState } from "react";
-import { signIn } from "@/features/auth/actions";
+import { useRouter } from "next/navigation";
+import { signInInBrowser } from "@/features/auth/client-auth";
 import type { FormState } from "@/features/auth/schema";
 import { FieldError, FormMessage, Input, Label } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export function LoginForm({ next }: { next: string }) {
-  const [state, action] = useActionState<FormState, FormData>(signIn, {});
+  const router = useRouter();
+  const [state, action] = useActionState<FormState, FormData>(async (_prev, form) => {
+    const result = await signInInBrowser(form);
+    if (result.redirectTo) {
+      router.replace(result.redirectTo);
+      router.refresh();
+    }
+    return result;
+  }, {});
   return (
     <form action={action} className="space-y-5" noValidate>
       <input type="hidden" name="next" value={next} />

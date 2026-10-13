@@ -1,13 +1,22 @@
 "use client";
 
 import { useActionState } from "react";
-import { signUp } from "@/features/auth/actions";
+import { useRouter } from "next/navigation";
+import { signUpInBrowser } from "@/features/auth/client-auth";
 import type { FormState } from "@/features/auth/schema";
 import { FieldError, FormMessage, Input, Label } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
 
 export function SignUpForm({ next }: { next: string }) {
-  const [state, action] = useActionState<FormState, FormData>(signUp, {});
+  const router = useRouter();
+  const [state, action] = useActionState<FormState, FormData>(async (_prev, form) => {
+    const result = await signUpInBrowser(form);
+    if (result.redirectTo) {
+      router.replace(result.redirectTo);
+      router.refresh();
+    }
+    return result;
+  }, {});
   return (
     <form action={action} className="space-y-5" noValidate>
       <input type="hidden" name="next" value={next} />

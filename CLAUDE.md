@@ -45,7 +45,7 @@ Pinterest 감성의 따뜻한 에디토리얼. 폴라로이드·스크랩북 카
 - **사진**: HEIC는 브라우저가 못 열면 `heic-to`(LGPL, 지연 로드)로 변환. EXIF는 브라우저에서 읽고 사용자가 확인한 값만 저장. 저장 파일은 WebP 재인코딩(EXIF 없음). 상대는 공유된 기록에 붙은 사진만 본다. 파일 삭제는 대기열 + `/api/cron/storage-cleanup`(service_role은 이 작업에서만).
 - **장소**: `memory_places`는 기록에 속한다(가시성 = 기록). 출처(exif/device/manual)·정확도 저장, manual은 정확도 없음. 지도 연결선은 기록 순서이며 지도 위 범례로 "실제 이동 경로 아님"을 항상 표시. 주소 검색 없음.
 - **발견**: 공개 글은 기록의 사본(원본 참조·couple_id 없음), 공개 화면은 아무것도 선택 안 된 상태로 시작 + 확인 체크 필수. 작성자는 "익명의 커플". 이미지는 서버에서 WebP 메타데이터 청크를 한 번 더 제거해 비공개 버킷(`post-images`)에 두고 서명 URL로만. 차단은 양방향. 신고 3명 이상 → 자동 `under_review`. 운영자(`app_metadata.role='admin'`)가 `/admin/reports`에서 복구/내리기(`removed`), 기록은 `private.moderation_log`. 서명 URL은 10분.
-- 지도: MapLibre(`src/features/map/map-view.tsx`), 워커 파일은 `scripts/copy-maplibre.mjs`가 `public/vendor/`로 복사(빌드·dev 전에 자동). 배경 스타일 실패 시 단색 배경으로 대체.
+- 지도: MapLibre(`src/features/map/map-view.tsx`), 워커 파일은 `scripts/copy-vendor.mjs`가 `public/vendor/`로 복사(빌드·dev 전에 자동, HEIC 워커 포함). 배경 스타일 실패 시 단색 배경으로 대체.
 - 샘플 데이터는 `supabase/seed.sql`(로컬 전용, 모든 이름·제목에 `[샘플]`).
 
 ## 코드 지도
@@ -59,6 +59,12 @@ Pinterest 감성의 따뜻한 에디토리얼. 폴라로이드·스크랩북 카
 - Cloudflare Workers(`@opennextjs/cloudflare`, `wrangler.jsonc`, 진입점 `worker.ts` — 크론이 파일 정리 라우트를 호출). `npm run cf:preview`로 로컬 workerd 실행.
 - `patches/@opennextjs+cloudflare+1.20.7.patch`(Next 16.4 `preview-props.json` 누락 수정)를 `patch-package`가 적용한다. OpenNext 버전을 올릴 때 패치가 아직 필요한지 확인.
 - DB 타입: 마이그레이션을 바꾸면 `npm run gen:types`(로컬 Supabase 필요)로 `src/lib/supabase/database.types.ts`를 다시 만든다. Supabase 클라이언트는 이 타입으로 검사된다.
+
+## 보안 규칙 (점검 결과는 `docs/security.md`)
+- CSP는 `src/lib/security/csp.ts`(proxy에서 요청별 nonce). 새 외부 출처(API·이미지·지도)를 쓰면 여기에 추가하고, `eval`이 필요한 라이브러리는 페이지가 아니라 전용 워커로 격리한다(HEIC 디코더 참고, 워커 CSP는 `next.config.ts`와 `public/_headers` 둘 다).
+- zod는 `@/lib/zod`에서 가져온다(`jitless` 설정 — CSP 위반 방지).
+- 로그인·가입은 브라우저에서 Supabase를 직접 호출한다(IP 단위 rate limit 때문). 서버 액션으로 옮기지 말 것.
+- 권한 우회 RPC(SECURITY DEFINER)를 추가하면 `tests/db/security-invariants.test.ts`의 검토 목록을 갱신해야 테스트가 통과한다.
 
 ## DB 작성 규칙
 - public 스키마 새 테이블: **RLS 켜기 + `revoke all ... from public, anon, authenticated` 후 필요한 권한만 grant**. (Supabase는 기본으로 anon/authenticated에 전부 grant한다. `tests/db/rls-isolation.test.ts`가 RLS 누락을 잡는다.)
