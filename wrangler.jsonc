@@ -11,6 +11,9 @@
     "binding": "ASSETS"
   },
   "observability": { "enabled": true },
+  // 버전별 미리보기 URL은 쓰지 않는다(배포 주소 하나만 공개)
+  "workers_dev": true,
+  "preview_urls": false,
   // 삭제된 사진·공개 글 이미지 파일 정리 (매시 17분)
   "triggers": { "crons": ["17 * * * *"] }
   // 비밀값은 커밋하지 않는다: wrangler secret put SUPABASE_SERVICE_ROLE_KEY / CRON_SECRET
