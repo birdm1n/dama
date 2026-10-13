@@ -8,7 +8,7 @@
 - 테이블 권한은 기본 회수 후 필요한 것만 부여한다. 상태 전이는 `SECURITY DEFINER` RPC로만 한다.
 - 연결 해제된 커플(`status = 'dissolved'`, `purge_after > now()`)에서는 **본인이 작성한 행만** 읽기 전용으로 접근할 수 있다:
   `using (author_id = auth.uid() and private.was_member(couple_id) and <couple dissolved & not purged>)`
-- 위치는 항상 `location_source`(`exif` | `device` | `manual` | `search`)와 `accuracy_m`을 함께 저장한다.
+- 위치는 항상 `location_source`(`exif` | `device` | `manual`)와 `accuracy_m`을 함께 저장한다. 주소 검색은 없으므로 `search` 출처는 없다. `memory_places`에서 `manual`은 정확도를 저장하지 않는다(`accuracy_m is null`).
 - 소프트 삭제(`deleted_at`)는 사용자 실수 복구용이다. 커플 영구 삭제 시에는 cascade로 모두 지운다.
 
 ## 인증·커플 ✅
@@ -115,5 +115,4 @@ user_blocks         (blocker_id, blocked_id)
 | 버킷 | 공개 | 쓰기 | 읽기 |
 |---|---|---|---|
 | `post-images` ✅ | ✗ (WebP만, 10MB) | 내 게시물 폴더(`{post_id}/…`)에만 | 볼 수 있는 `public_post_images` 행이 가리키는 파일만 + 서명 URL(10분). 업로드 직후 15분은 작성자만 |
-| `couple-photos` ✅ | ✗ (WebP만, 10MB) | 본인 경로(`{내 활성 couple_id}/{auth.uid()}/…`)에만 | 볼 수 있는 `photos` 행이 가리키는 파일만 + 서명된 URL(1시간). 업로드 직후 15분간 행이 없을 때는 본인만 |
-| `public-posts` | ○ | 서버(EXIF 제거 처리 후)만 | 누구나 |
+| `couple-photos` ✅ | ✗ (WebP만, 10MB) | 본인 경로(`{내 활성 couple_id}/{auth.uid()}/…`)에만 | 볼 수 있는 `photos` 행이 가리키는 파일만 + 서명 URL(10분). 업로드 직후 15분간 행이 없을 때는 본인만 |

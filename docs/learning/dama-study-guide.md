@@ -439,7 +439,7 @@ sequenceDiagram
 
 - 원본 파일은 기기를 떠나지 않는다. 저장된 파일은 재인코딩 결과라 EXIF가 없다.
 - 상대는 **공유된 기록에 붙은 사진만** 본다. 기록을 다시 `draft`로 돌리면 즉시 안 보인다(`tests/db/photos.test.ts`).
-- 사진 보기는 서명 URL(코드상 10분, `src/features/photos/queries.ts`). 참고: `docs/schema.md` Storage 표에는 "1시간"으로 남아 있어 문서와 코드가 다르다(**코드 기준 10분, 문서 갱신 확인 필요**).
+- 사진 보기는 서명 URL(코드상 10분, `src/features/photos/queries.ts`). `docs/schema.md`도 10분으로 맞췄다.
 
 ### 5.3 기록 공개 (Date Discovery)
 
@@ -722,6 +722,6 @@ Supabase Auth의 로그인·가입 제한이 IP 단위라, 서버(워커)에서 
 
 1. 운영 환경의 인증 메일 SMTP 제공자 — 문서에는 설정 할 일로만 있음.
 2. 현재 배포본(`dama.dama-app.workers.dev`)이 마지막 커밋까지 반영됐는지.
-3. `docs/schema.md`와 코드의 차이: `couple-photos` 서명 URL(문서 1시간 / 코드 10분), 문서 Storage 표의 `public-posts` 공개 버킷(마이그레이션에 없음, 실제는 비공개 `post-images`), 공통 규칙의 `location_source 'search'`(CHECK 제약에는 `exif`/`device`/`manual`만).
+3. ~~`docs/schema.md`와 코드의 차이~~ → 해결: 서명 URL 10분, `public-posts` 행 삭제, `location_source`에서 `search` 제거.
 4. 운영자 화면에서 이미 `removed`인 글을 restore하는 동선이 있는지(RPC는 허용).
 5. CI 자동 테스트 실행 여부(`.github/workflows` 없음).
