@@ -49,3 +49,6 @@ next-env.d.ts
 # supabase local
 supabase/.branches
 supabase/.temp
+
+# maplibre worker (scripts/copy-maplibre.mjs가 생성)
+/public/vendor/

@@ -67,15 +67,23 @@ photos
 - 기록 후보 묶기(`src/features/photos/grouping.ts`): 시간 간격 3시간·거리 2km 이내를 묶어 **제안**만 한다. 저장하지 않고, 함께 있었다고 단정하지 않는다. 새 기록은 항상 '나만 보기'로 만든다.
 - 파일 삭제: SQL로는 Storage 파일을 지울 수 없어서 `photos` 행 삭제 시(사용자 삭제, 커플 영구 삭제 cascade) 경로를 `private.storage_deletion_queue`에 넣는다. `/api/cron/storage-cleanup`(service_role, `CRON_SECRET`)이 Storage API로 지운다. 행이 지워진 순간부터 파일은 정책상 읽을 수 없다.
 
-## Memory Map 📝
+## Memory Map ✅
 
 ```
-places         id, couple_id, created_by, name, address, lat, lng, location_source, accuracy_m, created_at
-memory_places  memory_id, place_id, seq int     -- 지도 연결선 순서. 실제 이동 경로가 아님(UI에 표시)
+memory_places
+  id, memory_id (on delete cascade), couple_id
+  seq                   -- 기록 안의 순서. 지도 연결선은 이 순서(기록 순서)이며 실제 이동 경로가 아니다
+  name (1~60자), address (선택, ≤200자)
+  lat, lng numeric(9,6)
+  location_source 'exif' | 'device' | 'manual', accuracy_m (manual이면 null)
+  created_at
 ```
 
-RLS는 `memories`와 같은 규칙(장소가 shared 기록에 연결되었거나 본인이 만든 경우).
-좌표는 `numeric(9,6)`. 반경 검색이 필요해지면 PostGIS `geography(Point)`로 바꾼다.
+- 계획했던 커플 공용 `places` 테이블 대신 **장소를 기록에 속하게** 했다. 공용 장소 목록이 있으면 초안 기록에만 쓴 장소 이름이 상대에게 새기 쉽다. 이제 장소의 가시성은 기록과 정확히 같다(RLS: `exists (select 1 from memories ...)`가 호출자 권한으로 memories RLS를 그대로 적용).
+- 쓰기는 기록 작성자만, 활성 커플에서만. 기록당 20곳. 좌표는 수정 불가(지우고 다시 추가).
+- 위치 입력 방법: 지도에서 직접 고르기(manual) / 기록에 붙은 사진의 EXIF 위치(exif, 정확도 유지) / 기기 현재 위치(device, 브라우저가 준 정확도) / 좌표 직접 입력(manual). **주소 검색은 지원하지 않는다**(키 없는 무료 지오코딩 서비스는 자동완성 용도 사용을 금지하는 곳이 많다).
+- 코스(`src/features/map/course.ts`): 같은 날짜의 장소를 기록 작성 순서 → 장소 순서로 정렬해 점선으로 잇는다. 지도 위 범례와 아래 안내문에 "기록 순서, 실제 이동 경로 아님"을 표시한다.
+- 순서 변경: `move_memory_place(id, ±1)` (SECURITY INVOKER — 작성자만 성공).
 
 ## Date Discovery 📝
 

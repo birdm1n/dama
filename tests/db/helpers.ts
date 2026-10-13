@@ -206,3 +206,15 @@ export async function visibleObjects(db: Db, user: TestUser) {
   const rows = await db.as<{ name: string }>(user, "select name from storage.objects where bucket_id = 'couple-photos' order by name");
   return rows.map((r) => r.name);
 }
+
+export type PlaceInput = { name?: string; lat?: number; lng?: number; seq?: number; source?: "exif" | "device" | "manual"; accuracy?: number | null };
+
+export async function addPlace(db: Db, user: TestUser, coupleId: string, memoryId: string, p: PlaceInput = {}) {
+  const [row] = await db.as<{ id: string }>(
+    user,
+    `insert into memory_places (memory_id, couple_id, seq, name, lat, lng, location_source, accuracy_m)
+     values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`,
+    [memoryId, coupleId, p.seq ?? 0, p.name ?? "장소", p.lat ?? 37.5446, p.lng ?? 127.0374, p.source ?? "manual", p.accuracy ?? null],
+  );
+  return row.id;
+}

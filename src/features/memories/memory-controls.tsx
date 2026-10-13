@@ -14,12 +14,14 @@ export function ShareToggle({
   partnerName,
   photoCount = 0,
   locationCount = 0,
+  placeCount = 0,
 }: {
   id: string;
   status: ShareStatus;
   partnerName: string | null;
   photoCount?: number;
   locationCount?: number;
+  placeCount?: number;
 }) {
   const [confirming, setConfirming] = useState(false);
   if (status === "shared") {
@@ -45,6 +47,7 @@ export function ShareToggle({
       <span className="text-sm">
         {partnerName ? `${partnerName}님도 이 기록을 보게 돼요.` : "상대가 연결되면 이 기록을 보게 돼요."}
         {photoCount > 0 && ` 사진 ${photoCount}장${locationCount > 0 ? `과 그중 ${locationCount}장의 위치 정보` : ""}도 함께 보여요.`}
+        {placeCount > 0 && ` 장소 ${placeCount}곳도 지도에 보여요.`}
       </span>
       <SubmitButton variant="rose" size="sm" pendingText="공유 중…">공유</SubmitButton>
       <Button variant="ghost" size="sm" onClick={() => setConfirming(false)}>취소</Button>

@@ -10,6 +10,7 @@ const MESSAGES: Record<string, string> = {
   INVITE_EXPIRED: "만료된 초대 링크예요. 상대에게 새 링크를 요청해 주세요.",
   INVITE_USED: "이미 사용된 초대 링크예요.",
   INVITE_REVOKED: "취소된 초대 링크예요. 상대에게 새 링크를 요청해 주세요.",
+  TOO_MANY_PLACES: "한 기록에는 장소를 20개까지 넣을 수 있어요.",
   INVITE_OWN: "내가 만든 초대 링크는 직접 수락할 수 없어요. 상대에게 링크를 보내 주세요.",
 };
 

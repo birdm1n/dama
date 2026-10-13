@@ -46,8 +46,8 @@ export default async function HomePage() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         {[
-          { title: "기록", desc: "메모·날짜·태그로 하루를 남겨요.", href: "/memories", soon: false },
-          { title: "지도", desc: "우리가 다녀간 곳을 지도에서 봐요.", href: "/map", soon: true },
+          { title: "기록", desc: "사진·메모·장소로 하루를 남겨요.", href: "/memories", soon: false },
+          { title: "지도", desc: "우리가 다녀간 곳을 지도에서 봐요.", href: "/map", soon: false },
           { title: "발견", desc: "다른 커플이 공개한 데이트 코스.", href: "/discover", soon: true },
         ].map((item) => (
           <Link key={item.href} href={item.href} className="card-paper block p-5 transition-colors hover:bg-beige/30">

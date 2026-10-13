@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowLeft, ImagePlus, Lock, Pencil } from "lucide-react";
+import { ArrowLeft, ImagePlus, Lock, MapPin, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { FormMessage } from "@/components/ui/input";
 import { getMyCouple } from "@/features/couple/queries";
 import { DeleteMemory, ShareToggle } from "@/features/memories/memory-controls";
 import { getMemory } from "@/features/memories/queries";
+import { sourceLabel } from "@/features/map/course";
+import { getMemoryPlaces } from "@/features/map/queries";
 import { MemoryPhotoGrid } from "@/features/photos/photo-grid";
 import { getMemoryPhotos } from "@/features/photos/queries";
 import { formatDate } from "@/lib/dates";
@@ -20,7 +22,7 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
   const [memory, couple] = await Promise.all([getMemory(userId, id), getMyCouple(userId)]);
   // 권한이 없는 기록은 "없는 기록"과 구별하지 않는다.
   if (!memory) notFound();
-  const photos = await getMemoryPhotos(userId, memory.id);
+  const [photos, places] = await Promise.all([getMemoryPhotos(userId, memory.id), getMemoryPlaces(userId, memory.id)]);
   const withLocation = photos.filter((p) => p.lat != null).length;
   const archived = memory.couple_id !== couple?.id;
   const partner = couple?.members.find((m) => !m.isMe);
@@ -53,6 +55,22 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
           </div>
         )}
         {memory.body && <div className="mt-6 whitespace-pre-wrap text-[15px] leading-[1.9]">{memory.body}</div>}
+        {places.length > 0 && (
+          <section className="mt-8" aria-label="장소">
+            <h2 className="mb-2 flex items-center gap-1.5 text-sm font-medium"><MapPin className="size-4 text-rose-deep" /> 장소</h2>
+            <ol className="space-y-1 text-sm">
+              {places.map((p, i) => (
+                <li key={p.id} className="flex gap-2">
+                  <span className="text-ink-muted">{i + 1}.</span>
+                  <span>{p.name} <span className="text-xs text-ink-muted">· {sourceLabel(p)}</span></span>
+                </li>
+              ))}
+            </ol>
+            {!archived && (
+              <Link href={`/map?date=${memory.happened_on}`} className="mt-2 inline-block text-xs underline underline-offset-2">이 날의 코스를 지도에서 보기</Link>
+            )}
+          </section>
+        )}
         {memory.tags.length > 0 && (
           <ul className="mt-8 flex flex-wrap gap-1.5">
             {memory.tags.map((t) => (
@@ -71,6 +89,9 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
           <Link href={`/memories/${memory.id}/edit`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <Pencil /> 수정
           </Link>
+          <Link href={`/memories/${memory.id}/places`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <MapPin /> 장소
+          </Link>
           <Link href={`/photos/upload?memory=${memory.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
             <ImagePlus /> 사진 추가
           </Link>
@@ -80,6 +101,7 @@ export default async function MemoryPage({ params, searchParams }: PageProps<"/m
             partnerName={partner?.displayName ?? null}
             photoCount={photos.length}
             locationCount={withLocation}
+            placeCount={places.length}
           />
           <DeleteMemory id={memory.id} />
         </div>
